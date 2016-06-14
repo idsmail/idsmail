@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 public class FetchXML {
@@ -104,7 +105,7 @@ public class FetchXML {
 		String dateFrom = options.valueOf(opDateFrom);
 		String dateTo = options.valueOf(opDateTo);
 
-		Integer timeout = options.valueOf(opTimeout);
+		Optional<Integer> timeout = Optional.ofNullable(options.valueOf(opTimeout)).map(to -> to * 1000);
 
 		FetchXML fx = new FetchXML();
 		fx.fetch(host, user, password, folder, sender, dateFrom, dateTo,
@@ -117,7 +118,7 @@ public class FetchXML {
 	public void fetch(String host, String username, String password,
 					  File diskFolder, String sender, String dateLowLimit,
 					  String dateHighLimit, Boolean overwrite, Boolean delete,
-					  Boolean single, Integer timeout, int port) {
+					  Boolean single, Optional<Integer> timeout, int port) {
 		StatusNotifier statusNotifier = new StatusNotifier(diskFolder);
 		statusNotifier.updateStatus(ProcessingStatus.WORKING);
 
@@ -125,8 +126,10 @@ public class FetchXML {
 				debug);
 
 		Properties props = new Properties();
-		props.setProperty("mail.pop3.connectiontimeout", timeout.toString());
-		props.setProperty("mail.pop3.timeout", timeout.toString());
+		timeout.ifPresent(to -> {
+				props.setProperty("mail.pop3.connectiontimeout", to.toString());
+				props.setProperty("mail.pop3.timeout", to.toString());
+		});
 
 		Session session = Session.getDefaultInstance(props, null);
 		session.setDebug(debug);
