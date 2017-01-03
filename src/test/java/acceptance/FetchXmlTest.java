@@ -45,7 +45,7 @@ public class FetchXmlTest {
         greenMailUser.deliver(mimeMessage);
         FetchXML fetchXML = new FetchXML();
         File diskFolder = temporaryFolder.newFolder();
-        fetchXML.fetch("127.0.0.1", USER, PASSWORD, diskFolder, USER, "20-02-2016", "30-10-2016", true, true, true, Optional.of(50000), serverSetup.getPort());
+        fetchXML.fetch("127.0.0.1", USER, PASSWORD, diskFolder, USER, "20-02-2016", "30-10-2017", true, true, true, Optional.of(50000), serverSetup.getPort());
 
         Assert.assertArrayEquals(new String[]{"attached.xml", "status.txt"}, diskFolder.list());
     }
