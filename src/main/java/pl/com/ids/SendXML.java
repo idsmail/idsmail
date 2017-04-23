@@ -110,7 +110,7 @@ public class SendXML {
 
     private static void printUsage(OptionParser parser) throws IOException {
         System.err
-                .println("Usage: sendXML -s -h smtp_server_name -m port [-a -u user -p pass] \n"
+                .println("Usage: sendXML [-s] [-c] -h smtp_server_name -m port [-a -u user -p pass] \n"
                         + "                   file_name address_to address_from -v -l log_folder");
         parser.printHelpOn(System.out);
     }
@@ -126,6 +126,7 @@ public class SendXML {
         OptionParser parser = new OptionParser();
         OptionSpec<String> opHost = parser.accepts("h", "host to connect").withRequiredArg().ofType(String.class);
         OptionSpec<Void> opSsl = parser.accepts("s", "ssl usage");
+        OptionSpec<Void> opTls = parser.accepts("c", "tls usage");
         OptionSpec<Integer> opPort = parser.accepts("m", "port number").withRequiredArg().ofType(Integer.class);
         OptionSpec<Integer> opTimeout = parser.accepts("t", "timeout").withRequiredArg().ofType(Integer.class);
 
@@ -161,7 +162,8 @@ public class SendXML {
             otherArgs.stream().forEach(System.out::println);
         }
 
-        Boolean ssl = (Boolean) options.has(opSsl);
+        Boolean ssl = options.has(opSsl);
+        Boolean tls = options.has(opTls);
 
         if (otherArgs.size() != 3 || host == null || port == null) {
             printUsage(parser);
@@ -185,12 +187,12 @@ public class SendXML {
         SendXML sx = new SendXML();
 
         Integer timeout = options.valueOf(opTimeout);
-        sx.send(f, (String) otherArgs.get(1), (String) otherArgs.get(2), host, port, auth, user, password, l, ssl, timeout);
+        sx.send(f, (String) otherArgs.get(1), (String) otherArgs.get(2), host, port, auth, user, password, l, ssl, tls, timeout);
         l.logExit(0);
     }
 
     public void send(File f, String to, String from, String smtphost, Integer smtpport,
-                     Boolean auth, String username, String password, Logger l, Boolean ssl, Integer timeout) {
+                     Boolean auth, String username, String password, Logger l, Boolean ssl, Boolean tls, Integer timeout) {
         Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
 
         /**
@@ -214,14 +216,18 @@ public class SendXML {
             props.put("mail.smtp.writetimeout", timeout * 1000);
         }
 
-        if (ssl != null) {
+        if (ssl != null && ssl) {
             props.put("mail.smtp.ssl.enable", ssl.booleanValue());
             props.put("mail.smtp.socketFactory.port", smtpport);
             props.put("mail.smtp.socketFactory.class",
                     "javax.net.ssl.SSLSocketFactory");
             props.put("mail.smtp.socketFactory.fallback", "false");
-
         }
+
+        if (tls != null && tls) {
+            props.put("mail.smtp.starttls.enable", "true");
+        }
+
         if (auth != null && auth.booleanValue()) {
             props.put("mail.smtp.auth", "true");
             props.setProperty("mail.user", username);

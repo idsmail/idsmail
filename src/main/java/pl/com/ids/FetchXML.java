@@ -18,18 +18,14 @@ public class FetchXML {
 	private static boolean debug = false;
 	private static final int ERR_SYNTAX_ERROR = 2;
 	private static final int ERR_FILE_NOT_FOUND = 3;
-	private static final int ARGUMENTS_ERROR = 4;
 
 	static private String msg = "";
 
-	// private String host = "unikat.nazwa.pl";
-	// private String username = "testowe@unikat.nazwa.pl";
-	// private String password = "haslo.77";
-
-	private static void printUsage() {
-		final String usage = "Usage: fetchXML [-o] [-d] [-s] pop3_server_name  user pass \n"
+	private static void printUsage(OptionParser parser) throws IOException {
+		final String usage = "Usage: fetchXML [-c] [-o] [-d] [-s] [-p IMAPS|POP3|POP3S] mail_server_name  user pass \n"
 				+ "                   folder_name [sender] [-f date_from] [-t date_to] [-v] -l log_folder";
-		System.err.println(usage);
+		System.out.println(usage);
+		parser.printHelpOn(System.out);
 		msg += usage + "\n";
 	}
 
@@ -40,24 +36,32 @@ public class FetchXML {
 		Logger l = new Logger("in.txt");
 		OptionParser parser = new OptionParser();
 
-		OptionSpec<Void> opOverwrite = parser.accepts("o");
-		OptionSpec<Void> opDelete = parser.accepts("d");
-		OptionSpec<Void> opSingle = parser.accepts("s");
-		OptionSpec<Integer> opTimeout = parser.accepts("m").withRequiredArg().ofType(Integer.class).defaultsTo(-1);
+		OptionSpec<Void> opOverwrite = parser.accepts("o", "[przelacznik] nadpisuj plik na dysku podczas pobierania załącznika z tą samą nazwą");
+		OptionSpec<Void> opDelete = parser.accepts("d", "[przelacznik] kasuje plik po pobraniu go z serwera");
+		OptionSpec<Void> opSingle = parser.accepts("s", "[przelacznik] pobierz tylko jeden plik z serwera");
+		OptionSpec<Protocol> opImap = parser.accepts("p", "[argument z parametrem] wybierz protokol pobiernia, poprawne wartosci IMAPS, POP3, POP3S").withRequiredArg().ofType(Protocol.class);
+		OptionSpec<Void> opTls = parser.accepts("c", "[przelacznik] skorzystaj z tls ");
+
+		OptionSpec<Integer> opTimeout = parser.accepts("m", "[argument z parametrem] czas oczekiwania na odpowiedz serwera (timeout)").withRequiredArg().ofType(Integer.class).defaultsTo(-1);
 
 
-		OptionSpec<File> opLogFolder = parser.accepts("l").withRequiredArg().ofType(File.class);
-		OptionSpec<Void>  opVerbose = parser.accepts("v");
-		OptionSpec<String>  opDateFrom = parser.accepts("f").withRequiredArg();
-		OptionSpec<String>  opDateTo = parser.accepts("t").withRequiredArg();
+		OptionSpec<File> opLogFolder = parser.accepts("l", "[argument z parametrem] docelowy folder dla logow").withRequiredArg().ofType(File.class);
+		OptionSpec<Void>  opVerbose = parser.accepts("v", "[przelacznik] wlacz tryb gadatliwy");
+		OptionSpec<String>  opDateFrom = parser.accepts("f", "[argument z parametrem] pobierz od daty").withRequiredArg();
+		OptionSpec<String>  opDateTo = parser.accepts("t", "[argument z parametrem] pobierz do daty").withRequiredArg();
 
-		OptionSet options = parser.parse( args );
-
-		if (options.nonOptionArguments().size() < 4) {
-			printUsage();
+		OptionSet options = null;
+		try {
+			 options = parser.parse(args);
+		} catch (joptsimple.OptionException e) {
+			System.out.println(e.getMessage());
+			printUsage(parser);
 			l.logExit(ERR_SYNTAX_ERROR, msg);
 		}
-
+		if (options.nonOptionArguments().size() < 4) {
+			printUsage(parser);
+			l.logExit(ERR_SYNTAX_ERROR, msg);
+		}
 
 		final File logFolder = options.valueOf(opLogFolder);
 		l.setLogFolder(logFolder);
@@ -66,7 +70,6 @@ public class FetchXML {
 		if (verbose != null) {
 			debug = verbose.booleanValue();
 		}
-
 
 		int i = 0;
 
@@ -81,13 +84,6 @@ public class FetchXML {
 		} else {
 			sender = null;
 		}
-/*
-		if (options.has(opSender)) {
-			sender = options.valueOf(opSender);
-		} else {
-			sender = null;
-		}
-*/
 
 		msg += (folder.getAbsolutePath() + " FILE EXISTS: " + folder.exists() + "\n");
 		msg += ("User: " + user + "\n");
@@ -108,40 +104,44 @@ public class FetchXML {
 		Optional<Integer> timeout = Optional.ofNullable(options.valueOf(opTimeout)).map(to -> to * 1000);
 
 		FetchXML fx = new FetchXML();
-		fx.fetch(host, user, password, folder, sender, dateFrom, dateTo,
-				overwrite, delete, single, timeout, 110);
+		Protocol protocol = options.valueOf(opImap);
+		Boolean useTls = options.has(opTls);
+		Service service = new Service(host, -1, user, password, protocol, useTls);
+		fx.fetch(
+				new FetchOptions(service, folder, sender, dateFrom, dateTo, overwrite, delete, single, timeout));
 		l.logExit(0);
 		// TODO Auto-generated method stub
 
 	}
 
-	public void fetch(String host, String username, String password,
-					  File diskFolder, String sender, String dateLowLimit,
-					  String dateHighLimit, Boolean overwrite, Boolean delete,
-					  Boolean single, Optional<Integer> timeout, int port) {
-		StatusNotifier statusNotifier = new StatusNotifier(diskFolder);
+	public void fetch(FetchOptions fetchOptions) {
+		StatusNotifier statusNotifier = new StatusNotifier(fetchOptions.getDiskFolder());
 		statusNotifier.updateStatus(ProcessingStatus.WORKING);
 
-		AugmentedFileWriter fileWriter = new AugmentedFileWriter(overwrite,
+		AugmentedFileWriter fileWriter = new AugmentedFileWriter(fetchOptions.getOverwrite(),
 				debug);
 
 		Properties props = new Properties();
-		timeout.ifPresent(to -> {
+		fetchOptions.getTimeout().ifPresent(to -> {
 				props.setProperty("mail.pop3.connectiontimeout", to.toString());
 				props.setProperty("mail.pop3.timeout", to.toString());
 		});
 
-		Session session = Session.getDefaultInstance(props, null);
-		session.setDebug(debug);
-		Store store = null;
+		if (fetchOptions.getService().getUseTls()) {
+			props.setProperty("mail.pop3.starttls.enable", "true");
+		}
+
+		if (fetchOptions.getService().getProtocol() == Protocol.POP3S) {
+			props.put("mail.pop3s.ssl.trust", "*");
+
+			props.setProperty("mail.pop3.socketFactory.fallback", "false");
+		}
 		Folder folder = null;
 		boolean limitReached = false;
+		Store store = null;
 		try {
-			store = session.getStore("pop3");
-			if (debug) {
-				System.out.println("Connect" + host + " ; " + username);
-			}
-			store.connect(host, port, username, password);
+			store = getConnectedStore(fetchOptions.getService(), props);
+
 			folder = store.getFolder("INBOX");
 			folder.open(Folder.READ_WRITE);
 			Message messages[] = folder.getMessages();
@@ -151,21 +151,21 @@ public class FetchXML {
 
 				debug("---- Wiadomosc numer " + i + " -----");
 
-				boolean senderVerified = verifySender(sender, message);
+				boolean senderVerified = verifySender(fetchOptions.getSender(), message);
 				boolean messageAvailable = !message.isSet(Flags.Flag.DELETED);
 				if (senderVerified && messageAvailable) {
 
 					DatesComparator dc = new DatesComparator();
 					Date sentDate = message.getSentDate();
 
-					if (!dc.between(dateLowLimit, dateHighLimit, sentDate)) {
+					if (!dc.between(fetchOptions.getDateLowLimit(), fetchOptions.getDateHighLimit(), sentDate)) {
 						debug("Spoza zakresu " + sentDate);
 						continue;
 					}
 
 					debug("Zawartosc" + ct);
 
-					limitReached = saveAttachment(diskFolder, delete, single,
+					limitReached = saveAttachment(fetchOptions.getDiskFolder(), fetchOptions.getDelete(), fetchOptions.getSingle(),
 							fileWriter, limitReached, message, ct);
 				}
 			}
@@ -191,6 +191,18 @@ public class FetchXML {
 		}
 	}
 
+	private Store getConnectedStore(Service service, Properties props) throws MessagingException {
+		Session session = Session.getDefaultInstance(props, null);
+		session.setDebug(debug);
+
+		Store store =  session.getStore(service.getUrl());
+		if (debug) {
+            System.out.println("Connect" + service.getHost() + " ; " + service.getUsername());
+        }
+		store.connect();
+		return store;
+	}
+
 	private boolean saveAttachment(File diskFolder, Boolean delete,
 			Boolean single, AugmentedFileWriter fileWriter,
 			boolean limitReached, Message message, String ct)
@@ -206,7 +218,7 @@ public class FetchXML {
 					System.out.println("Tutaj :" + part.getContentType() + " "
 							+ part.getFileName() + " " + disposition);
 
-				if (Part.ATTACHMENT.equals(disposition)) {
+				if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 
 					if (debug)
 						System.out.println("Jestemy w save");

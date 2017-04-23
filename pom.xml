@@ -197,18 +197,19 @@
       <dependency>
           <groupId>javax.mail</groupId>
           <artifactId>javax.mail-api</artifactId>
-          <version>1.5.5</version>
+          <version>1.5.6</version>
       </dependency>
       <!-- http://mvnrepository.com/artifact/com.sun.mail/javax.mail -->
       <dependency>
           <groupId>com.sun.mail</groupId>
           <artifactId>javax.mail</artifactId>
-          <version>1.5.5</version>
+          <version>1.5.6</version>
       </dependency>
       <dependency>
           <groupId>com.icegreen</groupId>
           <artifactId>greenmail</artifactId>
-          <version>1.5.0</version>
+          <version>1.5.3</version>
+          <scope>test</scope>
       </dependency>
       <dependency>
           <groupId>com.microsoft.ews-java-api</groupId>

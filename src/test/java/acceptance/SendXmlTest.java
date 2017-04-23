@@ -45,8 +45,20 @@ public class SendXmlTest {
         greenMailUser.deliver(mimeMessage);
         SendXML fetchXML = new SendXML();
         File diskFolder = temporaryFolder.newFolder();
-        fetchXML.send(f, "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort(), false, USER, PASSWORD, null, false, 50);
+        fetchXML.send(f, "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort(), false, USER, PASSWORD, null, false, false, 50);
         greenMail.waitForIncomingEmail(5000, 2);
+        Assert.assertEquals(2, greenMail.getReceivedMessages().length);
+    }
+
+    @Test
+    public void sendMailTls() throws IOException, MessagingException {
+        File f = temporaryFolder.newFile("attached.xml");
+        ServerSetup serverSetup = greenMail.getSmtp().getServerSetup();
+        GreenMailUtil.getSession(serverSetup);
+        SendXML fetchXML = new SendXML();
+        temporaryFolder.newFolder();
+        fetchXML.send(f, "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort(), false, USER, PASSWORD, null, false, true , 50);
+        greenMail.waitForIncomingEmail(5000, 1);
         Assert.assertEquals(1, greenMail.getReceivedMessages().length);
     }
 }
