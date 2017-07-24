@@ -7,8 +7,8 @@ import com.icegreen.greenmail.util.ServerSetup;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-import pl.com.ids.FetchXML;
 import pl.com.ids.MimeMessageBuilder;
+import pl.com.ids.SendOptions;
 import pl.com.ids.SendXML;
 
 import javax.mail.MessagingException;
@@ -45,7 +45,7 @@ public class SendXmlTest {
         greenMailUser.deliver(mimeMessage);
         SendXML fetchXML = new SendXML();
         File diskFolder = temporaryFolder.newFolder();
-        fetchXML.send(f, "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort(), false, USER, PASSWORD, null, false, false, 50);
+        fetchXML.send(new SendOptions(f, false, USER, PASSWORD, null, false, false, 50), "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort());
         greenMail.waitForIncomingEmail(5000, 2);
         Assert.assertEquals(2, greenMail.getReceivedMessages().length);
     }
@@ -57,7 +57,7 @@ public class SendXmlTest {
         GreenMailUtil.getSession(serverSetup);
         SendXML fetchXML = new SendXML();
         temporaryFolder.newFolder();
-        fetchXML.send(f, "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort(), false, USER, PASSWORD, null, false, true , 50);
+        fetchXML.send(new SendOptions(f, false, USER, PASSWORD, null, false, true, 50), "test@greenmail.com", "from@mail.com", "127.0.0.1", serverSetup.getPort());
         greenMail.waitForIncomingEmail(5000, 1);
         Assert.assertEquals(1, greenMail.getReceivedMessages().length);
     }

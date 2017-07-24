@@ -12,9 +12,10 @@ public class FetchOptions {
     private final Boolean delete;
     private final Boolean single;
     private final Optional<Integer> timeout;
+    private boolean debug;
     private Service service;
 
-    public FetchOptions(Service service, File diskFolder, String sender, String dateLowLimit, String dateHighLimit, Boolean overwrite, Boolean delete, Boolean single, Optional<Integer> timeout) {
+    public FetchOptions(Service service, File diskFolder, String sender, String dateLowLimit, String dateHighLimit, Boolean overwrite, Boolean delete, Boolean single, Optional<Integer> timeout, boolean debug) {
         this.service = service;
         this.diskFolder = diskFolder;
         this.sender = sender;
@@ -24,6 +25,7 @@ public class FetchOptions {
         this.delete = delete;
         this.single = single;
         this.timeout = timeout;
+        this.debug = debug;
     }
 
     public File getDiskFolder() {
@@ -60,5 +62,9 @@ public class FetchOptions {
 
     public Service getService() {
         return service;
+    }
+
+    public boolean isDebug() {
+        return debug;
     }
 }

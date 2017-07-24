@@ -1,6 +1,7 @@
 package pl.com.ids;
 
 
+import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -37,8 +38,6 @@ class Logger {
             folder += "\\";
         }
         return folder;
-
-
     }
 
     public void setLogFolder(File logFolder) {
@@ -47,7 +46,6 @@ class Logger {
         } else {
             this.logFolder = null;
         }
-
     }
 
     public void logExit(int result) {
@@ -95,7 +93,6 @@ class Logger {
 }
 
 public class SendXML {
-
     /**
      * @param args
      */
@@ -110,7 +107,7 @@ public class SendXML {
 
     private static void printUsage(OptionParser parser) throws IOException {
         System.err
-                .println("Usage: sendXML [-s] [-c] -h smtp_server_name -m port [-a -u user -p pass] \n"
+                .println("Usage: sendXML [-s] [-c] [-q] -h smtp_server_name -m port [-a -u user -p pass] \n"
                         + "                   file_name address_to address_from -v -l log_folder");
         parser.printHelpOn(System.out);
     }
@@ -123,6 +120,8 @@ public class SendXML {
             }
         }
 
+        Debugger debugger = DebuggerFactory.getDebugger(args);
+
         OptionParser parser = new OptionParser();
         OptionSpec<String> opHost = parser.accepts("h", "host to connect").withRequiredArg().ofType(String.class);
         OptionSpec<Void> opSsl = parser.accepts("s", "ssl usage");
@@ -130,14 +129,21 @@ public class SendXML {
         OptionSpec<Integer> opPort = parser.accepts("m", "port number").withRequiredArg().ofType(Integer.class);
         OptionSpec<Integer> opTimeout = parser.accepts("t", "timeout").withRequiredArg().ofType(Integer.class);
 
-        OptionSpec<Void> opAuthenticate = parser.accepts("a", "authenticate");
+        OptionSpec<Void> opAuthenticate = parser.accepts("a", "przelacznik wlaczający autoryzacje uzytkownika na serwerze smtp, przy \n wlaczonej autoryzacji konieczne jest przekazanie nazwy uzytkownika i hasła");
         OptionSpec<String> opUser = parser.accepts("u", "username").withRequiredArg().ofType(String.class);
         OptionSpec<String> opPassword = parser.accepts("p", "pass").withRequiredArg().ofType(String.class);
         OptionSpec<File> opLogFolder = parser.accepts("l", "logFolder").withRequiredArg().ofType(File.class);
         OptionSpec<Void> opVerbose = parser.accepts("v", "verbose");
+        OptionSpec<Void> opPopUp = parser.accepts("q", "przelacznik umozliwiający wyswietlenie okienka z komunikatem o blędzie");
 
-        OptionSet options = parser.parse(args);
-
+        OptionSet options = null;
+        try {
+            options = parser.parse(args);
+        } catch (OptionException oe) {
+            debugger.debug(oe.getMessage());
+            printUsage(parser);
+            System.exit(ERR_SYNTAX_ERROR);
+        }
         final File logFolder = options.valueOf(opLogFolder);
         l.setLogFolder(logFolder);
 
@@ -146,7 +152,7 @@ public class SendXML {
         String user = null;
         String password = null;
         String host = null;
-        Integer port = null;
+        Integer port;
         if (auth != null && auth) {
             user = options.valueOf(opUser);
             password = options.valueOf(opPassword);
@@ -167,16 +173,19 @@ public class SendXML {
 
         if (otherArgs.size() != 3 || host == null || port == null) {
             printUsage(parser);
+            debugger.debug("Zbyt malo parametrow, wymagane 3");
             l.logExit(ERR_SYNTAX_ERROR);
         }
         if (auth != null && auth.booleanValue()
                 && (user == null || password == null)) {
             printUsage(parser);
+            debugger.debug("Nie podano uzytkownika lub hasła");
             l.logExit(ERR_SYNTAX_ERROR);
         }
 
         File f = new File((String) otherArgs.get(0));
         if (!f.exists()) {
+            debugger.debug("Plik  " + f.getAbsolutePath() + " nie istnieje");
             l.logExit(ERR_FILE_NOT_FOUND);
         }
         if (debug) {
@@ -187,12 +196,12 @@ public class SendXML {
         SendXML sx = new SendXML();
 
         Integer timeout = options.valueOf(opTimeout);
-        sx.send(f, (String) otherArgs.get(1), (String) otherArgs.get(2), host, port, auth, user, password, l, ssl, tls, timeout);
+        SendOptions sendOptions = new SendOptions(f, auth, user, password, l, ssl, tls, timeout);
+        sx.send(sendOptions, (String) otherArgs.get(1), (String) otherArgs.get(2), host, port);
         l.logExit(0);
     }
 
-    public void send(File f, String to, String from, String smtphost, Integer smtpport,
-                     Boolean auth, String username, String password, Logger l, Boolean ssl, Boolean tls, Integer timeout) {
+    public void send(SendOptions sendOptions, String to, String from, String smtphost, Integer smtpport) {
         Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
 
         /**
@@ -201,8 +210,8 @@ public class SendXML {
          */
 
 
-        String msgText1 = "Sending a file " + f.getName() + " .\n";
-        String subject = "Sending a file " + f.getName();
+        String msgText1 = "Sending a file " + sendOptions.getF().getName() + " .\n";
+        String subject = "Sending a file " + sendOptions.getF().getName();
 
         // create some properties and get the default Session
         Properties props = System.getProperties();
@@ -210,28 +219,29 @@ public class SendXML {
         props.put("mail.smtp.port", smtpport);
 
         props.put("mail.smtp.port", smtpport);
-        if (timeout != null) {
-            props.put("mail.smtp.connectiontimeout", timeout * 1000);
-            props.put("mail.smtp.timeout", timeout * 1000);
-            props.put("mail.smtp.writetimeout", timeout * 1000);
+        if (sendOptions.getTimeout() != null) {
+            props.put("mail.smtp.connectiontimeout", sendOptions.getTimeout() * 1000);
+            props.put("mail.smtp.timeout", sendOptions.getTimeout() * 1000);
+            props.put("mail.smtp.writetimeout", sendOptions.getTimeout() * 1000);
         }
 
-        if (ssl != null && ssl) {
-            props.put("mail.smtp.ssl.enable", ssl.booleanValue());
+        if (sendOptions.getSsl() != null && sendOptions.getSsl()) {
+            props.put("mail.smtp.ssl.enable", sendOptions.getSsl().booleanValue());
             props.put("mail.smtp.socketFactory.port", smtpport);
             props.put("mail.smtp.socketFactory.class",
                     "javax.net.ssl.SSLSocketFactory");
             props.put("mail.smtp.socketFactory.fallback", "false");
         }
 
-        if (tls != null && tls) {
+        if (sendOptions.getTls() != null && sendOptions.getTls()) {
             props.put("mail.smtp.starttls.enable", "true");
-        }
+       //     props.put("mail.smtp.ssl.trust", "*");
+             }
 
-        if (auth != null && auth.booleanValue()) {
+        if (sendOptions.getAuth() != null && sendOptions.getAuth().booleanValue()) {
             props.put("mail.smtp.auth", "true");
-            props.setProperty("mail.user", username);
-            props.setProperty("mail.password", password);
+            props.setProperty("mail.user", sendOptions.getUsername());
+            props.setProperty("mail.password", sendOptions.getPassword());
 
         }
         Session session = Session.getInstance(props, null);
@@ -239,10 +249,10 @@ public class SendXML {
         session.setDebug(debug);
 
         try {
-            MimeMessage msg = buildMimeMessage(f, to, from, msgText1, subject, session);
+            MimeMessage msg = buildMimeMessage(sendOptions.getF(), to, from, msgText1, subject, session);
 
             Transport tr = session.getTransport("smtp");
-            tr.connect(smtphost, username, password);
+            tr.connect(smtphost, sendOptions.getUsername(), sendOptions.getPassword());
             msg.saveChanges(); // bardzo istotna linia
             tr.sendMessage(msg, msg.getAllRecipients());
             tr.close();
@@ -254,14 +264,14 @@ public class SendXML {
             // if ((ex = mex.getNextException()) != null) {
             // ex.printStackTrace();
             // }
-            if (l != null) {
-                l.logExit(ERR_FILE_NOT_SENT);
+            if (sendOptions.getL() != null) {
+                sendOptions.getL().logExit(ERR_FILE_NOT_SENT);
             }
 
         } catch (IOException ioex) {
             ioex.printStackTrace();
-            if (l != null) {
-                l.logExit(ERR_FILE_NOT_SENT);
+            if (sendOptions.getL() != null) {
+                sendOptions.getL().logExit(ERR_FILE_NOT_SENT);
             }
         }
     }
