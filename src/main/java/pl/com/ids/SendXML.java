@@ -115,11 +115,10 @@ public class SendXML {
     public static void main(String[] args) throws IOException {
         Logger l = new Logger("out.txt");
         if (debug) {
-            for (int i = 0; i < args.length; i++) {
-                System.out.println(args[i]);
+            for (String arg : args) {
+                System.out.println(arg);
             }
         }
-
         Debugger debugger = DebuggerFactory.getDebugger(args);
 
         OptionParser parser = new OptionParser();
@@ -148,12 +147,12 @@ public class SendXML {
         l.setLogFolder(logFolder);
 
         debug = options.has(opVerbose);
-        Boolean auth = options.has(opAuthenticate);
+        boolean auth = options.has(opAuthenticate);
         String user = null;
         String password = null;
-        String host = null;
+        String host;
         Integer port;
-        if (auth != null && auth) {
+        if (auth) {
             user = options.valueOf(opUser);
             password = options.valueOf(opPassword);
         }
@@ -165,7 +164,7 @@ public class SendXML {
             System.out.println("remaining args: (  " + otherArgs.size() + ")");
 
         if (debug) {
-            otherArgs.stream().forEach(System.out::println);
+            otherArgs.forEach(System.out::println);
         }
 
         Boolean ssl = options.has(opSsl);
@@ -176,8 +175,7 @@ public class SendXML {
             debugger.debug("Zbyt malo parametrow, wymagane 3");
             l.logExit(ERR_SYNTAX_ERROR);
         }
-        if (auth != null && auth.booleanValue()
-                && (user == null || password == null)) {
+        if (auth && (user == null || password == null)) {
             printUsage(parser);
             debugger.debug("Nie podano uzytkownika lub hasła");
             l.logExit(ERR_SYNTAX_ERROR);
@@ -217,8 +215,6 @@ public class SendXML {
         Properties props = System.getProperties();
         props.put("mail.smtp.host", smtphost);
         props.put("mail.smtp.port", smtpport);
-
-        props.put("mail.smtp.port", smtpport);
         if (sendOptions.getTimeout() != null) {
             props.put("mail.smtp.connectiontimeout", sendOptions.getTimeout() * 1000);
             props.put("mail.smtp.timeout", sendOptions.getTimeout() * 1000);
@@ -226,7 +222,7 @@ public class SendXML {
         }
 
         if (sendOptions.getSsl() != null && sendOptions.getSsl()) {
-            props.put("mail.smtp.ssl.enable", sendOptions.getSsl().booleanValue());
+            props.put("mail.smtp.ssl.enable", sendOptions.getSsl());
             props.put("mail.smtp.socketFactory.port", smtpport);
             props.put("mail.smtp.socketFactory.class",
                     "javax.net.ssl.SSLSocketFactory");
@@ -238,7 +234,7 @@ public class SendXML {
        //     props.put("mail.smtp.ssl.trust", "*");
              }
 
-        if (sendOptions.getAuth() != null && sendOptions.getAuth().booleanValue()) {
+        if (sendOptions.getAuth() != null && sendOptions.getAuth()) {
             props.put("mail.smtp.auth", "true");
             props.setProperty("mail.user", sendOptions.getUsername());
             props.setProperty("mail.password", sendOptions.getPassword());

@@ -45,7 +45,7 @@ public class FetchXmlPop3Test {
         FetchXML fetchXML = new FetchXML(new NoOpDebugger());
         File diskFolder = temporaryFolder.newFolder();
         Service service = new Service("127.0.0.1", serverSetup.getPort(), USER, PASSWORD, Protocol.POP3, false);
-        fetchXML.fetch(new FetchOptions( service, diskFolder, USER, "20-02-2016", "30-10-2017", true, true, true, Optional.of(50000), false));
+        fetchXML.fetch(new FetchOptions( service, diskFolder, USER, "20-02-2016", "30-10-2021", true, true, true, Optional.of(50000), false));
 
         Assert.assertArrayEquals(new String[]{"attached.xml", "status.txt"}, diskFolder.list());
     }
