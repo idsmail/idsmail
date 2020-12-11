@@ -8,6 +8,10 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import pl.com.ids.*;
+import pl.com.ids.application.standard.FetchXMLStd;
+import pl.com.ids.domain.Configuration;
+import pl.com.ids.domain.FetchOptions;
+import pl.com.ids.application.standard.Service;
 
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -42,10 +46,11 @@ public class FetchXmlPop3Test {
         Session session = GreenMailUtil.getSession(serverSetup);
         MimeMessage mimeMessage = MimeMessageBuilder.buildMimeMessage(f, "test@mail.com", "user@greenmail.com", "messageText", "subject", session);
         greenMailUser.deliver(mimeMessage);
-        FetchXML fetchXML = new FetchXML(new NoOpDebugger());
+        FetchXMLStd fetchXML = new FetchXMLStd(new NoOpDebugger());
         File diskFolder = temporaryFolder.newFolder();
         Service service = new Service("127.0.0.1", serverSetup.getPort(), USER, PASSWORD, Protocol.POP3, false);
-        fetchXML.fetch(new FetchOptions( service, diskFolder, USER, "20-02-2016", "30-10-2021", true, true, true, Optional.of(50000), false));
+        FetchOptions options = new FetchOptions(diskFolder, USER, "20-02-2016", "30-10-2021", true, true, true, Optional.of(50000), false);
+        fetchXML.fetch(new Configuration<>(options, service));
 
         Assert.assertArrayEquals(new String[]{"attached.xml", "status.txt"}, diskFolder.list());
     }

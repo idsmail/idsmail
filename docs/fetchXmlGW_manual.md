@@ -32,9 +32,13 @@ np -t 11-11-2021 pobierze tylko maile wysłane przed 11 listopada 2021
 __-s__ podanie tego przełącznika spowoduje, że aplikacja zakończy swoje działanie zaraz po pobraniu
 pierwszego załącznika, w przypadku gdy oczekuje w skrzynce 5 maili do przetworzenia to należy
 aplikacje wywołać 5 razy z przełącznikiem -s w celu pobrania ich wszystkich,
+
 __-v__            wlącz tryb gadatliwy, w którym na ekranie prezentowanych jest wiele
 informacji pomocnych w sprawdzeniu poprawności działania programu bądź zrozumieniu przyczyn
 błędów w działaniu programu
 
-
+__-c__ <plik>    pozwala wskazać plik z którego mają być wczytane poświadczenia dla konta 
+dla konta gmail, np. _-c app-fetch.cfg_ spowoduje wczytanie z pliku o tej nazwie, dzięki temu
+przełącznikowi możliwe jest trzymanie fetch i send korzystających z dwóch różnych
+kont w jednym katalogu 
 

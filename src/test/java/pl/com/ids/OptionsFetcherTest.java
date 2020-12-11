@@ -3,6 +3,11 @@ package pl.com.ids;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import pl.com.ids.application.standard.OptionsFetcher;
+import pl.com.ids.domain.Configuration;
+import pl.com.ids.application.standard.Service;
+import pl.com.ids.infrastructure.IdsLogger;
+import pl.com.ids.infrastructure.SimpleDebugger;
 
 import static org.junit.Assert.*;
 
@@ -16,11 +21,12 @@ public class OptionsFetcherTest {
         String[] args = {"mail_server_name", "user",  "pass", String.valueOf(folder.getRoot()),  "-i"};
 
         //when
-        Logger l = new Logger("temp.log");
-        FetchOptions fetchOptions = new OptionsFetcher(args).getFetchOptions(l, new SimpleDebugger());
+        IdsLogger l = new IdsLogger("temp.log");
+        OptionsFetcher optionsFetcher = new OptionsFetcher(args);
+        Configuration<Service> fetchOptions = optionsFetcher.getFetchOptions(l, new SimpleDebugger());
 
         //then
-        assertEquals(fetchOptions.getService().getProtocol(), Protocol.IMAPS);
+        assertEquals(fetchOptions.getSpecific().getProtocol(), Protocol.IMAPS);
     }
 
     @Test
@@ -29,11 +35,12 @@ public class OptionsFetcherTest {
         String[] args = {"mail_server_name", "user",  "pass", String.valueOf(folder.getRoot()),  "-e"};
 
         //when
-        Logger l = new Logger("temp.log");
-        FetchOptions fetchOptions = new OptionsFetcher(args).getFetchOptions(l, new SimpleDebugger());
+        IdsLogger l = new IdsLogger("temp.log");
+        OptionsFetcher optionsFetcher = new OptionsFetcher(args);
+        Configuration<Service> fetchOptions = optionsFetcher.getFetchOptions(l, new SimpleDebugger());
 
         //then
-        Service service = fetchOptions.getService();
+        Service service = fetchOptions.getSpecific();
         assertEquals(service.getUrl().toString(), "pop3s://user:pass@mail_server_name/INBOX");
     }
 
@@ -43,11 +50,12 @@ public class OptionsFetcherTest {
         String[] args = {"mail_server_name", "user",  "pass", String.valueOf(folder.getRoot()),  "-e", "-p340"};
 
         //when
-        Logger l = new Logger("temp.log");
-        FetchOptions fetchOptions = new OptionsFetcher(args).getFetchOptions(l, new SimpleDebugger());
+        IdsLogger l = new IdsLogger("temp.log");
+        OptionsFetcher optionsFetcher = new OptionsFetcher(args);
+        Configuration<Service> fetchOptions = optionsFetcher.getFetchOptions(l, new SimpleDebugger());
 
         //then
-        Service service = fetchOptions.getService();
+        Service service = fetchOptions.getSpecific();
         assertEquals(service.getUrl().toString(), "pop3s://user:pass@mail_server_name:340/INBOX");
     }
 

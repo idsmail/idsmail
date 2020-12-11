@@ -3,8 +3,10 @@ package pl.com.ids.application.gcp;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import pl.com.ids.Debugger;
-import pl.com.ids.FetchOptions;
+import pl.com.ids.domain.Configuration;
+import pl.com.ids.infrastructure.Debugger;
+import pl.com.ids.domain.FetchOptions;
+import pl.com.ids.infrastructure.IdsLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,10 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class OptionsFetcher {
-    private String[] args;
-
-    private static final int ERR_SYNTAX_ERROR = 2;
-    private static final int ERR_FILE_NOT_FOUND = 3;
+    private final String[] args;
 
     static private String msg = "";
 
@@ -31,19 +30,19 @@ public class OptionsFetcher {
         this.args = args;
     }
 
-    FetchOptions getFetchOptions( Debugger debugger) throws IOException {
+    Configuration<OAuthConfig> getFetchOptions(IdsLogger log, Debugger debugger) throws IOException {
         OptionParser parser = new OptionParser();
 
         OptionSpec<Void> opOverwrite = parser.accepts("o", "[przelacznik] nadpisuj plik na dysku podczas pobierania załącznika z tą samą nazwą");
         OptionSpec<Void> opDelete = parser.accepts("d", "[przelacznik] kasuje plik po pobraniu go z serwera");
         OptionSpec<Void> opSingle = parser.accepts("s", "[przelacznik] pobierz tylko jeden plik z serwera");
         OptionSpec<Integer> opTimeout = parser.accepts("m", "[argument z parametrem] czas oczekiwania na odpowiedz serwera (timeout)").withRequiredArg().ofType(Integer.class).defaultsTo(-1);
+        OptionSpec<File> configFile = parser.accepts("c", "[argument z parametrem] lokalizacja pliku z konfiguracją").withRequiredArg().ofType(File.class).defaultsTo(new File("app.cfg"));
 
-
-        OptionSpec<File> opLogFolder = parser.accepts("l", "[argument z parametrem] docelowy folder dla logow").withRequiredArg().ofType(File.class);
-        OptionSpec<Void>  opVerbose = parser.accepts("v", "[przelacznik] wlacz tryb gadatliwy");
-        OptionSpec<String>  opDateFrom = parser.accepts("f", "[argument z parametrem] pobierz od daty").withRequiredArg();
-        OptionSpec<String>  opDateTo = parser.accepts("t", "[argument z parametrem] pobierz do daty").withRequiredArg();
+        OptionSpec<File> opLogFolder = parser.accepts("l", "[argument z parametrem] docelowy folder dla logow").withRequiredArg().ofType(File.class).defaultsTo(new File("."));
+        OptionSpec<Void> opVerbose = parser.accepts("v", "[przelacznik] wlacz tryb gadatliwy");
+        OptionSpec<String> opDateFrom = parser.accepts("f", "[argument z parametrem] pobierz od daty").withRequiredArg();
+        OptionSpec<String> opDateTo = parser.accepts("t", "[argument z parametrem] pobierz do daty").withRequiredArg();
 
         OptionSet options = null;
         try {
@@ -51,16 +50,17 @@ public class OptionsFetcher {
         } catch (joptsimple.OptionException e) {
             debugger.debug(e.getMessage());
             printUsage(parser);
-            //l.logExit(ERR_SYNTAX_ERROR, msg);
+            log.logSyntaxError(msg);
         }
         if (options.nonOptionArguments().isEmpty()) {
             debugger.debug("Zbyt malo parametrow");
             printUsage(parser);
-            //l.logExit(ERR_SYNTAX_ERROR, msg);
+            log.logSyntaxError(msg);
         }
 
+
         final File logFolder = options.valueOf(opLogFolder);
-        //l.setLogFolder(logFolder);
+        log.setLogFolder(logFolder);
 
         boolean debug = options.has(opVerbose);
         List<?> others = options.nonOptionArguments();
@@ -74,10 +74,12 @@ public class OptionsFetcher {
 
         msg += (folder.getAbsolutePath() + " FILE EXISTS: " + folder.exists() + "\n");
         msg += ("Output folder: " + folder.getAbsolutePath() + "\n");
-        System.out.println(msg);
+        if (debug) {
+            System.out.println(msg);
+        }
 
         if (!folder.exists()) {
-          //  l.logExit(ERR_FILE_NOT_FOUND, msg);
+            log.logFileNotFound(msg);
         }
         Boolean overwrite = options.has(opOverwrite);
         Boolean delete = options.has(opDelete);
@@ -86,7 +88,9 @@ public class OptionsFetcher {
         String dateTo = options.valueOf(opDateTo);
 
         Optional<Integer> timeout = Optional.ofNullable(options.valueOf(opTimeout)).map(to -> to * 1000);
-        return new FetchOptions(null, folder, sender, dateFrom, dateTo, overwrite, delete, single, timeout, debug);
+        FetchOptions fetchOptions = new FetchOptions(folder, sender, dateFrom, dateTo, overwrite, delete, single, timeout, debug);
+        final File oauthConfig = options.valueOf(configFile);
+        return new Configuration<>(fetchOptions, new OAuthConfig(oauthConfig));
     }
 
 }

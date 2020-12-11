@@ -1,9 +1,9 @@
-package pl.com.ids;
+package pl.com.ids.infrastructure;
 
 import java.util.Arrays;
 
 public class DebuggerFactory {
-    static Debugger getDebugger(String[] args) {
+    public static Debugger getDebugger(String[] args) {
         Debugger debugger;
         if (Arrays.asList(args).contains("-q")) {
             debugger = new SwingDebugger();

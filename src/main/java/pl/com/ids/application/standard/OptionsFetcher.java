@@ -1,9 +1,14 @@
-package pl.com.ids;
+package pl.com.ids.application.standard;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
+import pl.com.ids.Protocol;
+import pl.com.ids.domain.Configuration;
+import pl.com.ids.domain.FetchOptions;
+import pl.com.ids.infrastructure.Debugger;
+import pl.com.ids.infrastructure.IdsLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +23,8 @@ public class OptionsFetcher {
 
     static private String msg = "";
 
+    private Service service;
+
     private static void printUsage(OptionParser parser) throws IOException {
         final String usage = "Usage: fetchXML [-c] [-o] [-d] [-s] [-i] [-e] mail_server_name  user pass \n"
                 + "                   folder_name [sender] [-f date_from] [-t date_to] [-v] -l log_folder";
@@ -30,7 +37,7 @@ public class OptionsFetcher {
         this.args = args;
     }
 
-    FetchOptions getFetchOptions(Logger l, Debugger debugger) throws IOException {
+    public Configuration<Service> getFetchOptions(IdsLogger l, Debugger debugger) throws IOException {
         OptionParser parser = new OptionParser();
 
         OptionSpec<Void> opOverwrite = parser.accepts("o", "[przelacznik] nadpisuj plik na dysku podczas pobierania załącznika z tą samą nazwą");
@@ -55,12 +62,12 @@ public class OptionsFetcher {
         } catch (joptsimple.OptionException e) {
             debugger.debug(e.getMessage());
             printUsage(parser);
-            l.logExit(ERR_SYNTAX_ERROR, msg);
+            l.logSyntaxError(msg);
         }
         if (options.nonOptionArguments().size() < 4) {
             debugger.debug("Zbyt malo parametrow");
             printUsage(parser);
-            l.logExit(ERR_SYNTAX_ERROR, msg);
+            l.logSyntaxError(msg);
         }
 
         final File logFolder = options.valueOf(opLogFolder);
@@ -87,7 +94,7 @@ public class OptionsFetcher {
         System.out.println(msg);
 
         if (!folder.exists()) {
-            l.logExit(ERR_FILE_NOT_FOUND, msg);
+            l.logFileNotFound(msg);
         }
         Boolean overwrite = options.has(opOverwrite);
         Boolean delete = options.has(opDelete);
@@ -106,8 +113,12 @@ public class OptionsFetcher {
         }
         Boolean useTls = options.has(opTls);
         int port = options.has(opPort) ? options.valueOf(opPort) : -1;
-        Service service = new Service(host, port, user, password, protocol, useTls);
-        return new FetchOptions(service, folder, sender, dateFrom, dateTo, overwrite, delete, single, timeout, debug);
+        service = new Service(host, port, user, password, protocol, useTls);
+        FetchOptions fetchOptions = new FetchOptions(folder, sender, dateFrom, dateTo, overwrite, delete, single, timeout, debug);
+        return new Configuration(fetchOptions, service);
     }
 
+    public Service getService() {
+        return service;
+    }
 }

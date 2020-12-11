@@ -69,7 +69,7 @@
                             <jar>target/idsmail-1.0-SNAPSHOT-jar-with-dependencies.jar</jar>
                             <errTitle>fetchXml</errTitle>
                             <classPath>
-                                <mainClass>pl.com.ids.FetchXML</mainClass>
+                                <mainClass>pl.com.ids.application.standard.FetchXMLStd</mainClass>
                                 <addDependencies>true</addDependencies>
                                 <preCp>anything</preCp>
                             </classPath>
@@ -104,7 +104,7 @@
                             <jar>target/idsmail-1.0-SNAPSHOT-jar-with-dependencies.jar</jar>
                             <errTitle>sendXml</errTitle>
                             <classPath>
-                                <mainClass>pl.com.ids.SendXML</mainClass>
+                                <mainClass>pl.com.ids.application.standard.SendXML</mainClass>
                                 <addDependencies>true</addDependencies>
                                 <preCp>anything</preCp>
                             </classPath>
@@ -281,7 +281,7 @@
         <dependency>
             <groupId>com.icegreen</groupId>
             <artifactId>greenmail</artifactId>
-            <version>1.5.3</version>
+            <version>1.5.14</version>
             <scope>test</scope>
         </dependency>
         <dependency>

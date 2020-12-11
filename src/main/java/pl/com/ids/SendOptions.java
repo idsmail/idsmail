@@ -1,5 +1,7 @@
 package pl.com.ids;
 
+import pl.com.ids.infrastructure.IdsLogger;
+
 import java.io.File;
 
 public class SendOptions {
@@ -7,12 +9,12 @@ public class SendOptions {
     private final Boolean auth;
     private final String username;
     private final String password;
-    private final Logger l;
+    private final IdsLogger l;
     private final Boolean ssl;
     private final Boolean tls;
     private final Integer timeout;
 
-    public SendOptions(File f, Boolean auth, String username, String password, Logger l, Boolean ssl, Boolean tls, Integer timeout) {
+    public SendOptions(File f, Boolean auth, String username, String password, IdsLogger l, Boolean ssl, Boolean tls, Integer timeout) {
         this.f = f;
         this.auth = auth;
         this.username = username;
@@ -39,7 +41,7 @@ public class SendOptions {
         return password;
     }
 
-    public Logger getL() {
+    public IdsLogger getL() {
         return l;
     }
 

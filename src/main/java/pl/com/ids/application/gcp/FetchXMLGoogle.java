@@ -2,16 +2,16 @@ package pl.com.ids.application.gcp;
 
 import com.sun.mail.imap.IMAPSSLStore;
 import com.sun.mail.imap.IMAPStore;
-import pl.com.ids.FetchOptions;
-import pl.com.ids.FetchXML;
-import pl.com.ids.SimpleDebugger;
-import pl.com.ids.io.AugmentedFileWriter;
+import pl.com.ids.domain.Configuration;
+import pl.com.ids.domain.FetchOptions;
+import pl.com.ids.domain.FetchXML;
+import pl.com.ids.infrastructure.IdsLogger;
+import pl.com.ids.infrastructure.SimpleDebugger;
 
 import javax.mail.Folder;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.URLName;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.security.Provider;
@@ -32,29 +32,30 @@ public class FetchXMLGoogle {
 
     public static void main(String[] args) throws IOException {
         SimpleDebugger debugger = new SimpleDebugger();
+        IdsLogger l = new IdsLogger("in.txt");
         OptionsFetcher optionsFetcher = new OptionsFetcher(args);
-        FetchOptions fetchOptions = optionsFetcher.getFetchOptions(debugger);
+        Configuration<OAuthConfig> configuration = optionsFetcher.getFetchOptions(l, debugger);
 
         initialize();
         try {
             Properties props = new Properties();
-            props.load(new FileReader(new File("app.cfg")));
-            System.out.println(props.getProperty("oauth.refresh_token"));
+            props.load(new FileReader(configuration.getSpecific().getOauthConfig()));
             OAuthClient oAuthClient = new OAuthClient();
             String accessToken = oAuthClient.refreshToken(props.getProperty("oauth.client_id"),
                     props.getProperty("oauth.client_secret"),
                     props.getProperty("oauth.refresh_token"));
             String email_address = props.getProperty("email_address");
 
+            FetchOptions fetchOptions = configuration.getFetchOptions();
             IMAPStore imapStore = new FetchXMLGoogle().connectToImap("imap.gmail.com",
                     993,
                     email_address,
                     accessToken,
-                    true);
+                    fetchOptions.isDebug());
             FetchXML fetchXML = new FetchXML(debugger);
-            AugmentedFileWriter fileWriter = new AugmentedFileWriter(fetchOptions.getOverwrite(), fetchOptions.isDebug());
             Folder inbox = imapStore.getFolder("INBOX");
-            fetchXML.processFolder(fetchOptions, fileWriter, inbox);
+            fetchXML.processFolder(fetchOptions, inbox);
+            l.logSuccess();
         } catch (IOException | MessagingException e ) {
             e.printStackTrace();
         }
@@ -87,8 +88,10 @@ public class FetchXMLGoogle {
                                    String userEmail,
                                    String oauthToken,
                                    boolean debug) throws MessagingException {
-        System.out.println(userEmail);
-        System.out.println(oauthToken);
+        if (debug) {
+            System.out.println(userEmail);
+            System.out.println(oauthToken);
+        }
         Properties props = new Properties();
         props.put("mail.imaps.sasl.enable", "true");
         props.put("mail.imaps.sasl.mechanisms", "XOAUTH2");
