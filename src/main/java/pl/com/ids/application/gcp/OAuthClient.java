@@ -1,6 +1,7 @@
 package pl.com.ids.application.gcp;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -17,6 +18,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OAuthClient {
+    private boolean debug;
+
+    public OAuthClient(boolean debug) {
+        this.debug = debug;
+    }
+
     public String refreshToken(String clientId, String clientSecret, String refreshToken) {
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost("https://accounts.google.com/o/oauth2/token");
@@ -42,16 +49,27 @@ public class OAuthClient {
         }
 
         try {
-            String json = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-            System.out.println(json);
-            JSONObject jsonObject = new JSONObject(json);
-            return jsonObject.getString("access_token");
+            HttpEntity entity = response.getEntity();
+            return extractAccessToken(entity);
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
 
 
+    }
+
+    private String extractAccessToken(HttpEntity entity) throws IOException {
+        if (entity == null) {
+            return "";
+        }
+
+        String json = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+        if (debug) {
+            System.out.println(json);
+        }
+        JSONObject jsonObject = new JSONObject(json);
+        return jsonObject.getString("access_token");
     }
 
 }

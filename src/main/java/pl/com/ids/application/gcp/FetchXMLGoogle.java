@@ -35,18 +35,18 @@ public class FetchXMLGoogle {
         IdsLogger l = new IdsLogger("in.txt");
         OptionsFetcher optionsFetcher = new OptionsFetcher(args);
         Configuration<OAuthConfig> configuration = optionsFetcher.getFetchOptions(l, debugger);
-
+        FetchOptions fetchOptions = configuration.getFetchOptions();
         initialize();
+
         try {
             Properties props = new Properties();
             props.load(new FileReader(configuration.getSpecific().getOauthConfig()));
-            OAuthClient oAuthClient = new OAuthClient();
+            OAuthClient oAuthClient = new OAuthClient(fetchOptions.isDebug());
             String accessToken = oAuthClient.refreshToken(props.getProperty("oauth.client_id"),
                     props.getProperty("oauth.client_secret"),
                     props.getProperty("oauth.refresh_token"));
             String email_address = props.getProperty("email_address");
 
-            FetchOptions fetchOptions = configuration.getFetchOptions();
             IMAPStore imapStore = new FetchXMLGoogle().connectToImap("imap.gmail.com",
                     993,
                     email_address,

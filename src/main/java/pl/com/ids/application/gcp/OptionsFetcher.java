@@ -19,8 +19,8 @@ public class OptionsFetcher {
     static private String msg = "";
 
     private static void printUsage(OptionParser parser) throws IOException {
-        final String usage = "Usage: fetchXML  [-o] [-d] [-s] [-m] \n"
-                + "                   folder_name [sender] [-f date_from] [-t date_to] [-v] -l log_folder";
+        final String usage = "Usage: fetchXML  [-o] [-d] [-s] [-m] [-c plik_config]\n"
+                + "                   folder_name [sender] [-f date_from] [-t date_to] [-v] [-l log_folder]";
         System.out.println(usage);
         parser.printHelpOn(System.out);
         msg += usage + "\n";

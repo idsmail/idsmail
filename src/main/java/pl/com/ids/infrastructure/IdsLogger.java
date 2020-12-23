@@ -38,6 +38,9 @@ public class IdsLogger {
         logExit(0);
     }
 
+    void doExit(int result) {
+        System.exit(result);
+    }
     private void logExit(int result) {
         try {
             bwr = new BufferedWriter(new OutputStreamWriter(
@@ -45,9 +48,9 @@ public class IdsLogger {
             bwr.write("" + result);
             bwr.close();
         } catch (IOException ioe) {
-            System.out.println(ioe);
+            System.out.println(ioe.getMessage());
         }
-        System.exit(result);
+        doExit(result);
     }
 
     public void logSyntaxError(String details) {
@@ -64,7 +67,7 @@ public class IdsLogger {
             bwrExtended = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream("outDetails.txt")));
         } catch (FileNotFoundException fnf) {
-            System.out.println(fnf);
+            System.out.println(fnf.getMessage());
             System.exit(result);
         }
         try {
@@ -75,10 +78,8 @@ public class IdsLogger {
             bwrExtended.write(details);
             bwrExtended.close();
             System.exit(result);
-
-            System.exit(result);
         } catch (IOException ioe) {
-            System.out.println(ioe);
+            System.out.println(ioe.getMessage());
         }
 
     }
