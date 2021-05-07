@@ -42,15 +42,18 @@ public class FetchXMLGoogle {
             Properties props = new Properties();
             props.load(new FileReader(configuration.getSpecific().getOauthConfig()));
             OAuthClient oAuthClient = new OAuthClient(fetchOptions.isDebug());
+            Proxy proxy = new Proxy(props);
             String accessToken = oAuthClient.refreshToken(props.getProperty("oauth.client_id"),
                     props.getProperty("oauth.client_secret"),
-                    props.getProperty("oauth.refresh_token"));
+                    props.getProperty("oauth.refresh_token"),
+                    proxy);
             String email_address = props.getProperty("email_address");
 
             IMAPStore imapStore = new FetchXMLGoogle().connectToImap("imap.gmail.com",
                     993,
                     email_address,
                     accessToken,
+                    proxy,
                     fetchOptions.isDebug());
             FetchXML fetchXML = new FetchXML(debugger);
             Folder inbox = imapStore.getFolder("INBOX");
@@ -80,6 +83,7 @@ public class FetchXMLGoogle {
      * @param userEmail  Email address of the user to authenticate, for example
      *                   {@code oauth@gmail.com}.
      * @param oauthToken The user's OAuth token.
+     * @param proxy
      * @param debug      Whether to enable debug logging on the IMAP connection.
      * @return An authenticated IMAPStore that can be used for IMAP operations.
      */
@@ -87,7 +91,7 @@ public class FetchXMLGoogle {
                                    int port,
                                    String userEmail,
                                    String oauthToken,
-                                   boolean debug) throws MessagingException {
+                                   Proxy proxy, boolean debug) throws MessagingException {
         if (debug) {
             System.out.println(userEmail);
             System.out.println(oauthToken);
@@ -95,6 +99,9 @@ public class FetchXMLGoogle {
         Properties props = new Properties();
         props.put("mail.imaps.sasl.enable", "true");
         props.put("mail.imaps.sasl.mechanisms", "XOAUTH2");
+
+        setProxyInProps(proxy, props);
+
         props.put(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oauthToken);
         Session session = Session.getInstance(props);
         session.setDebug(debug);
@@ -104,5 +111,12 @@ public class FetchXMLGoogle {
         final String emptyPassword = "";
         store.connect(host, port, userEmail, emptyPassword);
         return store;
+    }
+
+    private void setProxyInProps(Proxy proxy, Properties props) {
+        props.put("mail.imaps.proxy.host", proxy.getHostName());
+        props.put("mail.imaps.proxy.port", String.valueOf(proxy.getPort()));
+        props.put("mail.imaps.proxy.user", proxy.getCredentials().getUserPrincipal().getName());
+        props.put("mail.imaps.proxy.password", proxy.getCredentials().getPassword());
     }
 }

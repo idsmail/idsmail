@@ -29,14 +29,16 @@ public class SendXMLGoogle {
         boolean debug = Boolean.parseBoolean(props.getProperty(DEBUG));
         OAuthClient oAuthClient = new OAuthClient(debug);
 
+        Proxy proxy = new Proxy(props);
         String accessToken = oAuthClient.refreshToken(props.getProperty("oauth.client_id"),
                 props.getProperty("oauth.client_secret"),
-                props.getProperty("oauth.refresh_token"));
+                props.getProperty("oauth.refresh_token"),
+                proxy);
         String emailAddress = props.getProperty("email_address");
 
         try {
             final OAuthSMTPClient oAuthSMTPClient = new OAuthSMTPClient();
-            SMTPTransport smtpTransport = oAuthSMTPClient.connectToSmtp("smtp.gmail.com", 587, emailAddress, accessToken, debug);
+            SMTPTransport smtpTransport = oAuthSMTPClient.connectToSmtp("smtp.gmail.com", 587, emailAddress, accessToken, proxy, debug);
             Properties sessionProps = new Properties();
             String addressFrom = props.getProperty(ADDRESS_FROM);
             String addressTo = props.getProperty(ADDRESS_TO);

@@ -4,6 +4,7 @@ import com.sun.mail.smtp.SMTPTransport;
 import pl.com.ids.MimeMessageBuilder;
 import pl.com.ids.infrastructure.Debugger;
 
+import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.URLName;
@@ -21,7 +22,7 @@ class OAuthSMTPClient {
         if (debug) {
             debugger.debug(subject);
         }
-        MimeMessage msg = MimeMessageBuilder.buildMimeMessage(f, addressFrom, addressTo, msgText1, subject, session);
+        MimeMessage msg = MimeMessageBuilder.buildMimeMessage(f, addressTo, addressFrom, msgText1, subject, session);
         smtpTransport.sendMessage(msg, new InternetAddress[]{new InternetAddress(addressTo)});
     }
 
@@ -29,6 +30,7 @@ class OAuthSMTPClient {
                                 int port,
                                 String userEmail,
                                 String oauthToken,
+                                Proxy proxy,
                                 boolean debug) throws MessagingException {
         // If the password is non-null, SMTP tries to do AUTH LOGIN.
         Properties props = new Properties();
@@ -36,7 +38,11 @@ class OAuthSMTPClient {
         props.put("mail.smtp.starttls.required", "true");
         props.put("mail.smtp.sasl.enable", "true");
         props.put("mail.smtp.sasl.mechanisms", "XOAUTH2");
+
+        setProxyInProps(proxy, props);
+
         props.put(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oauthToken);
+        // proxy with SMTP: https://community.oracle.com/tech/developers/discussion/1589188/javamail-send-a-mail-through-a-proxy-server-answer-and-with-gmail-ssl
         Session session = Session.getInstance(props);
         session.setDebug(debug);
 
@@ -47,5 +53,14 @@ class OAuthSMTPClient {
         transport.connect(host, port, userEmail, emptyPassword);
 
         return transport;
+    }
+
+    private void setProxyInProps(Proxy proxy, Properties props) {
+        if (proxy.getHostName() != null) {
+            props.put("mail.smtp.proxy.host", proxy.getHostName());
+            props.put("mail.smtp.proxy.port", String.valueOf(proxy.getPort()));
+            props.put("mail.smtp.proxy.user", proxy.getCredentials().getUserPrincipal().getName());
+            props.put("mail.smtp.proxy.password", proxy.getCredentials().getPassword());
+        }
     }
 }
