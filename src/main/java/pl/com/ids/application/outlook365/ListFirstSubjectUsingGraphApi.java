@@ -13,6 +13,7 @@ import pl.com.ids.exchange.AuthTokenAccess;
 import reactor.core.publisher.Mono;
 
 import java.io.*;
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -48,6 +49,32 @@ public class ListFirstSubjectUsingGraphApi {
         return sb.toString();
     }
 
+    public String refreshToken(String refreshToken, String clientId, String clientSecret) {
+        String tenantId = "common";
+        String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/token ", tenantId);
+        String accessToken = null;
+        try {
+            String postBody = String.format("grant_type=refresh_token&refresh_token=%s&redirect_uri=%s&client_id=%s&client_secret=%s&scope=%s",
+                    refreshToken, decode("http://localhost:3000/auth/callback"), clientId, clientSecret, "offline_access%20user.read%20mail.read%20mail.send");
+            System.out.println(String.format("$body = @{\n\"grant_type\"=\"refresh_token\"\n\"refresh_token\"=\"%s\"\n\"redirect_uri\"=\"%s\"\n\"client_id\"=\"%s\"\n\"client_secret\"=\"%s\"\n\"scope\"=\"%s\"}", refreshToken, decode("http://localhost:3000/auth/callback"), clientId, clientSecret, "offline_access%20user.read%20mail.read%20mail.send"));
+            JsonParser parser = executeCall(endpoint, postBody);
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                String name = parser.getCurrentName();
+                if ("access_token".equals(name)) {
+                    parser.nextToken();
+                    accessToken = parser.getText();
+                }
+            }
+            return accessToken;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //    Content-Type: application/x-www-form-urlencoded
+//                &scope=https%3A%2F%2Fgraph.microsoft.com%2Fmail.read
+        return null;
+    }
+
     public String getRefreshToken(String tenantId, String clientId, String clientSecret, String code) throws UnsupportedEncodingException {
         String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/token ", tenantId);
         String postBody = String.format("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s&client_secret=%s",
@@ -56,14 +83,7 @@ public class ListFirstSubjectUsingGraphApi {
         String accessToken = null;
         String refreshToken = null;
         try {
-            HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-            conn.setRequestMethod("POST");
-            conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            conn.setDoOutput(true);
-            conn.getOutputStream().write(postBody.getBytes());
-            conn.connect();
-            JsonFactory factory = new JsonFactory();
-            JsonParser parser = factory.createParser(conn.getInputStream());
+            JsonParser parser = executeCall(endpoint, postBody);
             //String accessToken = null;
             while (parser.nextToken() != JsonToken.END_OBJECT) {
                 String name = parser.getCurrentName();
@@ -80,6 +100,18 @@ public class ListFirstSubjectUsingGraphApi {
             System.err.println(e.getMessage());
         }
         return refreshToken;
+    }
+
+    private JsonParser executeCall(String endpoint, String postBody) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
+        conn.setRequestMethod("POST");
+        conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(postBody.getBytes());
+        conn.connect();
+        JsonFactory factory = new JsonFactory();
+        JsonParser parser = factory.createParser(conn.getInputStream());
+        return parser;
     }
 
     private void sendEmail(GraphServiceClient graphClient) {
@@ -111,31 +143,35 @@ public class ListFirstSubjectUsingGraphApi {
     public static void main(String[] args) throws IOException {
         // client id od aplikacji https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Overview/appId/4e33db79-7e64-4bc7-a482-ad24de40913d/isMSAApp/true
         // dostep na moj gmail
-        String cfgFileName = "app.cfg";
-        String clientId = "4e33db79-7e64-4bc7-a482-ad24de40913d";
-        String clientSecret = "W148Q~_ETj2BMjzWQcrxBcaHD67kaDu0rA8TIdm4";
-
+        String cfgFileName = args.length > 0 && args[0] != null ? args[0] : "app.cfg";
+        if (!new File(cfgFileName).exists()) {
+            System.out.println(String.format("plik cfg nie istnieje %s", cfgFileName));
+            System.exit(2);
+        }
         Properties props = new Properties();
         props.load(new FileReader(cfgFileName));
-        String accessTokenClientCredentials = AuthTokenAccess.getAccessToken("common", clientId, clientSecret, "mail.read");
+
+        String clientId = props.getProperty("clientId");
+        String clientSecret = props.getProperty("clientSecret");
+        // String accessTokenClientCredentials = AuthTokenAccess.getAccessToken("common", clientId, clientSecret, "mail.read");
+        // System.out.println(Base64.getDecoder().decode(accessTokenClientCredentials.split("\\.")[1]));
 
         ListFirstSubjectUsingGraphApi listFirstSubjectUsingGraphApi = new ListFirstSubjectUsingGraphApi();
-        if (!new java.io.File(cfgFileName).exists()) {
+        if (props.getProperty("refreshToken") == null) {
             String common = listFirstSubjectUsingGraphApi.getAuthorizationCode("common", clientId);
             Scanner scanner = new Scanner(System.in);
             String code = scanner.nextLine();
             System.out.println("Your string: " + code);
             String refreshToken = listFirstSubjectUsingGraphApi.getRefreshToken("common", clientId, clientSecret, code);
-            Properties prop = new Properties();
-            prop.setProperty("refresh_token", refreshToken);
-            prop.store(new FileOutputStream(cfgFileName), null);
+            props.setProperty("refreshToken", refreshToken);
+            props.store(new FileOutputStream(cfgFileName), null);
         }
-
-        System.out.println(Base64.getDecoder().decode(accessTokenClientCredentials.split("\\.")[1]));
+        String refreshToken = props.getProperty("refreshToken");
+        String accessToken = listFirstSubjectUsingGraphApi.refreshToken(refreshToken, clientId, clientSecret);
         GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(new TokenCredentialAuthProvider(new TokenCredential() {
             @Override
             public Mono<AccessToken> getToken(TokenRequestContext tokenRequestContext) {
-                return Mono.just(new AccessToken(accessTokenClientCredentials, OffsetDateTime.MAX));
+                return Mono.just(new AccessToken(accessToken, OffsetDateTime.MAX));
             }
         })).buildClient();
 
@@ -143,7 +179,24 @@ public class ListFirstSubjectUsingGraphApi {
         List<Message> messages = client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").get().getCurrentPage();
         messages.forEach(m -> {
             System.out.println(m.subject);
-            System.out.println(m.attachments.getCount());
+            List<Attachment> attachments = client.me().messages(m.id).attachments().buildRequest().get().getCurrentPage();
+            attachments.forEach(a -> {
+                FileAttachment attachment = (FileAttachment) client.me().messages(m.id).attachments(a.id)
+                        .buildRequest()
+                        .get();
+                File outputFile = new File(attachment.name);
+
+                try {
+                    FileOutputStream outputStream = new FileOutputStream(outputFile);
+                    outputStream.write(attachment.contentBytes);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            });
+
         });
 
         listFirstSubjectUsingGraphApi.sendEmail(client);
