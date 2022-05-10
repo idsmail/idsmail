@@ -232,7 +232,41 @@
                             </versionInfo>
                         </configuration>
                     </execution>
-
+                    <execution>
+                        <id>outlook365Client</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>console</headerType>
+                            <outfile>target/outlook365Fetch.exe</outfile>
+                            <jar>target/idsmail-1.0-SNAPSHOT-jar-with-dependencies.jar</jar>
+                            <errTitle>outlook365Client</errTitle>
+                            <classPath>
+                                <mainClass>pl.com.ids.application.outlook365.ListFirstSubjectUsingGraphApi</mainClass>
+                                <addDependencies>true</addDependencies>
+                                <preCp>anything</preCp>
+                            </classPath>
+                            <jre>
+                                <minVersion>1.8.0_202</minVersion>
+                                <opts>
+                                    <opt>-Djava.endorsed.dirs=./endorsed</opt>
+                                </opts>
+                            </jre>
+                            <versionInfo>
+                                <fileVersion>1.2.3.4</fileVersion>
+                                <txtFileVersion>txt file version?</txtFileVersion>
+                                <fileDescription>a description</fileDescription>
+                                <copyright>my copyright</copyright>
+                                <productVersion>4.3.2.1</productVersion>
+                                <txtProductVersion>txt product version</txtProductVersion>
+                                <productName>E-N-C-C</productName>
+                                <internalName>ccne</internalName>
+                                <originalFilename>original.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

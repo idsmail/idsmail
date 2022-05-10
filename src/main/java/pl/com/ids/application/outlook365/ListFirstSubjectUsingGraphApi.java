@@ -1,4 +1,4 @@
-package pl.com.ids.exchange;
+package pl.com.ids.application.outlook365;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.GraphServiceClient;
+import pl.com.ids.exchange.AuthTokenAccess;
 import reactor.core.publisher.Mono;
 
 import java.io.*;
@@ -24,6 +25,7 @@ public class ListFirstSubjectUsingGraphApi {
     private String decode(String value) throws UnsupportedEncodingException {
         return URLDecoder.decode(value, StandardCharsets.UTF_8.toString());
     }
+
     public String getAuthorizationCode(String tenantId, String clientId) throws IOException {
         String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s" +
                 "&response_type=code" +
@@ -105,6 +107,7 @@ public class ListFirstSubjectUsingGraphApi {
                 .buildRequest()
                 .post();
     }
+
     public static void main(String[] args) throws IOException {
         // client id od aplikacji https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Overview/appId/4e33db79-7e64-4bc7-a482-ad24de40913d/isMSAApp/true
         // dostep na moj gmail
@@ -112,22 +115,21 @@ public class ListFirstSubjectUsingGraphApi {
         String clientId = "4e33db79-7e64-4bc7-a482-ad24de40913d";
         String clientSecret = "W148Q~_ETj2BMjzWQcrxBcaHD67kaDu0rA8TIdm4";
 
+        Properties props = new Properties();
+        props.load(new FileReader(cfgFileName));
+        String accessTokenClientCredentials = AuthTokenAccess.getAccessToken("common", clientId, clientSecret, "mail.read");
+
         ListFirstSubjectUsingGraphApi listFirstSubjectUsingGraphApi = new ListFirstSubjectUsingGraphApi();
         if (!new java.io.File(cfgFileName).exists()) {
             String common = listFirstSubjectUsingGraphApi.getAuthorizationCode("common", clientId);
             Scanner scanner = new Scanner(System.in);
             String code = scanner.nextLine();
             System.out.println("Your string: " + code);
-            String refreshToken = listFirstSubjectUsingGraphApi.getRefreshToken("common", clientId, clientSecret, code );
+            String refreshToken = listFirstSubjectUsingGraphApi.getRefreshToken("common", clientId, clientSecret, code);
             Properties prop = new Properties();
             prop.setProperty("refresh_token", refreshToken);
             prop.store(new FileOutputStream(cfgFileName), null);
         }
-        Properties prop = new Properties();
-        InputStream in = listFirstSubjectUsingGraphApi.getClass().getResourceAsStream(cfgFileName);
-        prop.load(in);
-        
-        String accessTokenClientCredentials = AuthTokenAccess.getAccessToken("common", clientId, clientSecret, "mail.read");
 
         System.out.println(Base64.getDecoder().decode(accessTokenClientCredentials.split("\\.")[1]));
         GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(new TokenCredentialAuthProvider(new TokenCredential() {
@@ -139,7 +141,11 @@ public class ListFirstSubjectUsingGraphApi {
 
         //https://docs.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0
         List<Message> messages = client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").get().getCurrentPage();
-        messages.forEach(m -> System.out.println(m.subject));
+        messages.forEach(m -> {
+            System.out.println(m.subject);
+            System.out.println(m.attachments.getCount());
+        });
+
         listFirstSubjectUsingGraphApi.sendEmail(client);
     }
 }
