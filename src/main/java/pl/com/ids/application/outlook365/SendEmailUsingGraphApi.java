@@ -8,20 +8,27 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.models.*;
+import com.microsoft.graph.requests.AttachmentCollectionPage;
+import com.microsoft.graph.requests.AttachmentCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
+import pl.com.ids.infrastructure.IdsLogger;
+import pl.com.ids.infrastructure.SimpleDebugger;
 import reactor.core.publisher.Mono;
 
-import java.io.*;
 import java.io.File;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.OffsetDateTime;
-import java.util.*;
-import java.util.List;
+import java.util.Base64;
+import java.util.LinkedList;
+import java.util.Properties;
+import java.util.Scanner;
 
-public class ListFirstSubjectUsingGraphApi {
+public class SendEmailUsingGraphApi {
     private String decode(String value) throws UnsupportedEncodingException {
         return URLDecoder.decode(value, StandardCharsets.UTF_8.toString());
     }
@@ -113,34 +120,63 @@ public class ListFirstSubjectUsingGraphApi {
         return parser;
     }
 
+    private void sendEmail(GraphServiceClient graphClient, Properties props) throws IOException {
+        String fileName = props.getProperty(SendOptionsProcessor.FILE_NAME);
+        String msgText1 = "Sending a file " + fileName + " .\n";
+        String subject = "Sending a file " + fileName;
+
+        Message message = new Message();
+        message.subject = subject;
+        ItemBody body = new ItemBody();
+        body.contentType = BodyType.TEXT;
+        body.content = msgText1;
+        message.body = body;
+        LinkedList<Attachment> attachmentsList = new LinkedList<>();
+        byte[] content = Files.readAllBytes(new File(fileName).toPath());
+        FileAttachment attachment = new FileAttachment();
+        attachment.name = fileName;
+        attachment.contentType = "text/plain";
+        attachment.oDataType = "#microsoft.graph.fileAttachment";
+        attachment.contentBytes = content;
+        attachmentsList.add(attachment);
+        AttachmentCollectionResponse attachmentCollectionResponse = new AttachmentCollectionResponse();
+        attachmentCollectionResponse.value = attachmentsList;
+        AttachmentCollectionPage attachmentCollectionPage = new AttachmentCollectionPage(attachmentCollectionResponse, null);
+        message.attachments = attachmentCollectionPage;
+        LinkedList<Recipient> toRecipientsList = new LinkedList<Recipient>();
+        Recipient toRecipients = new Recipient();
+        EmailAddress emailAddress = new EmailAddress();
+        emailAddress.address = "karol.kalinski@gmail.com";
+        toRecipients.emailAddress = emailAddress;
+        toRecipientsList.add(toRecipients);
+        message.toRecipients = toRecipientsList;
+        boolean saveToSentItems = false;
+
+        graphClient.me()
+                .sendMail(UserSendMailParameterSet
+                        .newBuilder()
+                        .withMessage(message)
+                        .withSaveToSentItems(saveToSentItems)
+                        .build())
+                .buildRequest()
+                .post();
+    }
+
     public static void main(String[] args) throws IOException {
         // client id od aplikacji https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Overview/appId/4e33db79-7e64-4bc7-a482-ad24de40913d/isMSAApp/true
         // dostep na moj gmail
-        String cfgFileName = args.length > 0 && args[0] != null ? args[0] : "app.cfg";
-        if (!new File(cfgFileName).exists()) {
-            System.out.println(String.format("plik cfg nie istnieje %s", cfgFileName));
-            System.exit(2);
-        }
-        Properties props = new Properties();
-        props.load(new FileReader(cfgFileName));
-
+        SendOptionsProcessor sendOptionsProcessor = new SendOptionsProcessor();
+        Properties props = sendOptionsProcessor.getSendOptions(args, new IdsLogger("sendMail.log"), new SimpleDebugger());
         String clientId = props.getProperty("clientId");
         String clientSecret = props.getProperty("clientSecret");
-        // String accessTokenClientCredentials = AuthTokenAccess.getAccessToken("common", clientId, clientSecret, "mail.read");
-        // System.out.println(Base64.getDecoder().decode(accessTokenClientCredentials.split("\\.")[1]));
 
-        ListFirstSubjectUsingGraphApi listFirstSubjectUsingGraphApi = new ListFirstSubjectUsingGraphApi();
+        SendEmailUsingGraphApi sendEmailUsingGraphApi = new SendEmailUsingGraphApi();
         if (props.getProperty("refreshToken") == null) {
-            String common = listFirstSubjectUsingGraphApi.getAuthorizationCode("common", clientId);
-            Scanner scanner = new Scanner(System.in);
-            String code = scanner.nextLine();
-            System.out.println("Your string: " + code);
-            String refreshToken = listFirstSubjectUsingGraphApi.getRefreshToken("common", clientId, clientSecret, code);
-            props.setProperty("refreshToken", refreshToken);
-            props.store(new FileOutputStream(cfgFileName), null);
+            System.out.println("brak refresh tokenu, uruchom fetch, aby go wygenerować");
+            System.exit(2);
         }
         String refreshToken = props.getProperty("refreshToken");
-        String accessToken = listFirstSubjectUsingGraphApi.refreshToken(refreshToken, clientId, clientSecret);
+        String accessToken = sendEmailUsingGraphApi.refreshToken(refreshToken, clientId, clientSecret);
         GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(new TokenCredentialAuthProvider(new TokenCredential() {
             @Override
             public Mono<AccessToken> getToken(TokenRequestContext tokenRequestContext) {
@@ -148,29 +184,7 @@ public class ListFirstSubjectUsingGraphApi {
             }
         })).buildClient();
 
-        //https://docs.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0
-        List<Message> messages = client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").get().getCurrentPage();
-        messages.forEach(m -> {
-            System.out.println(m.subject);
-            List<Attachment> attachments = client.me().messages(m.id).attachments().buildRequest().get().getCurrentPage();
-            attachments.forEach(a -> {
-                FileAttachment attachment = (FileAttachment) client.me().messages(m.id).attachments(a.id)
-                        .buildRequest()
-                        .get();
-                File outputFile = new File(attachment.name);
 
-                try {
-                    FileOutputStream outputStream = new FileOutputStream(outputFile);
-                    outputStream.write(attachment.contentBytes);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            });
-
-        });
-
+        sendEmailUsingGraphApi.sendEmail(client, props);
     }
 }
