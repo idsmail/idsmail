@@ -11,6 +11,7 @@ import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.AttachmentCollectionPage;
 import com.microsoft.graph.requests.AttachmentCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
+import org.jetbrains.annotations.NotNull;
 import pl.com.ids.infrastructure.IdsLogger;
 import pl.com.ids.infrastructure.SimpleDebugger;
 import reactor.core.publisher.Mono;
@@ -23,10 +24,8 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.OffsetDateTime;
-import java.util.Base64;
 import java.util.LinkedList;
 import java.util.Properties;
-import java.util.Scanner;
 
 public class SendEmailUsingGraphApi {
     private String decode(String value) throws UnsupportedEncodingException {
@@ -143,13 +142,7 @@ public class SendEmailUsingGraphApi {
         attachmentCollectionResponse.value = attachmentsList;
         AttachmentCollectionPage attachmentCollectionPage = new AttachmentCollectionPage(attachmentCollectionResponse, null);
         message.attachments = attachmentCollectionPage;
-        LinkedList<Recipient> toRecipientsList = new LinkedList<Recipient>();
-        Recipient toRecipients = new Recipient();
-        EmailAddress emailAddress = new EmailAddress();
-        emailAddress.address = "karol.kalinski@gmail.com";
-        toRecipients.emailAddress = emailAddress;
-        toRecipientsList.add(toRecipients);
-        message.toRecipients = toRecipientsList;
+        message.toRecipients = buildRecipients(props.getProperty(SendOptionsProcessor.ADDRESS_TO));
         boolean saveToSentItems = false;
 
         graphClient.me()
@@ -160,6 +153,17 @@ public class SendEmailUsingGraphApi {
                         .build())
                 .buildRequest()
                 .post();
+    }
+
+    @NotNull
+    private LinkedList<Recipient> buildRecipients(String toAddress) {
+        LinkedList<Recipient> toRecipientsList = new LinkedList<Recipient>();
+        Recipient toRecipients = new Recipient();
+        EmailAddress emailAddress = new EmailAddress();
+        emailAddress.address = toAddress;
+        toRecipients.emailAddress = emailAddress;
+        toRecipientsList.add(toRecipients);
+        return toRecipientsList;
     }
 
     public static void main(String[] args) throws IOException {

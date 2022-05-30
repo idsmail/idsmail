@@ -36,7 +36,7 @@ public class SendOptionsProcessor {
         List<?> otherArgs = options.nonOptionArguments();
         if (otherArgs.size() != 2) {
             printUsage(parser);
-            debugger.debug("Zbyt malo parametrow, wymagane 3");
+            debugger.debug("Zbyt malo parametrow, wymagane 2");
             log.logSyntaxError();
         }
 
@@ -57,7 +57,7 @@ public class SendOptionsProcessor {
     }
 
     private String printUsage(OptionParser parser) throws IOException {
-        final String usage = "Usage: sendXML file_name address_to address_from [-c plik_config]";
+        final String usage = "Usage: sendXML file_name address_to [-c plik_config]";
         System.out.println(usage);
         parser.printHelpOn(System.out);
         return usage;

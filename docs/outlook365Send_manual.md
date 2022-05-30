@@ -17,7 +17,7 @@ outlook365Send.exe <nazwa-pliku> <adres-email-odbiorcy>
 
 Aplikacja wyśle plik o nazwie _nazwa-pliku_ na adres _adres-email-odbiorcy_.
 
-Dodatkowo można użyc opcji _-c_ aby wskazać plik konfiguracyjny, który aplikacja ma użyć. Domyślnie użyje _app.o365.cfg_.
+Dodatkowo można użyc opcji _-c_ aby wskazać plik konfiguracyjny, który aplikacja ma użyć. Domyślnie użyje _app.cfg_.
 
 
 
