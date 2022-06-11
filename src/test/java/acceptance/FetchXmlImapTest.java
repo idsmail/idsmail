@@ -51,7 +51,7 @@ public class FetchXmlImapTest {
         FetchXMLStd fetchXML = new FetchXMLStd(new NoOpDebugger());
         File diskFolder = temporaryFolder.newFolder();
         Service service = new Service("127.0.0.1", serverSetup.getPort(), USER, PASSWORD, Protocol.IMAPS, false);
-        FetchOptions options = new FetchOptions(diskFolder, USER, "20-02-2016", "30-10-2021", true, true, true, Optional.of(50000), false);
+        FetchOptions options = new FetchOptions(diskFolder, USER, "20-02-2016", "30-10-2023", true, true, true, Optional.of(50000), false);
         fetchXML.fetch(new Configuration<>(options, service));
 
         Assert.assertArrayEquals(new String[]{"attached.xml", "status.txt"}, diskFolder.list());

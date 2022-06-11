@@ -23,6 +23,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -120,7 +122,14 @@ public class SendEmailUsingGraphApi {
     }
 
     private void sendEmail(GraphServiceClient graphClient, Properties props) throws IOException {
-        String fileName = props.getProperty(SendOptionsProcessor.FILE_NAME);
+        String fullFilePath = props.getProperty(SendOptionsProcessor.FILE_NAME);
+
+        // create object of Path
+        Path path = Paths.get(fullFilePath);
+
+        // call getFileName() and get FileName path object
+        Path fileName = path.getFileName();
+
         String msgText1 = "Sending a file " + fileName + " .\n";
         String subject = "Sending a file " + fileName;
 
@@ -131,9 +140,9 @@ public class SendEmailUsingGraphApi {
         body.content = msgText1;
         message.body = body;
         LinkedList<Attachment> attachmentsList = new LinkedList<>();
-        byte[] content = Files.readAllBytes(new File(fileName).toPath());
+        byte[] content = Files.readAllBytes(new File(fullFilePath).toPath());
         FileAttachment attachment = new FileAttachment();
-        attachment.name = fileName;
+        attachment.name = fileName.toString();
         attachment.contentType = "text/plain";
         attachment.oDataType = "#microsoft.graph.fileAttachment";
         attachment.contentBytes = content;
