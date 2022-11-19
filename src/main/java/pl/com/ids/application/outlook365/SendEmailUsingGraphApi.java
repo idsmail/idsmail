@@ -34,28 +34,6 @@ public class SendEmailUsingGraphApi {
         return URLDecoder.decode(value, StandardCharsets.UTF_8.toString());
     }
 
-    public String getAuthorizationCode(String tenantId, String clientId) throws IOException {
-        String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s" +
-                "&response_type=code" +
-                "&redirect_uri=%s" +
-                "&response_mode=query" +
-                "&scope=%s" +
-                "&state=12345", tenantId, clientId, decode("http://localhost:3000/auth/callback"), "offline_access%20user.read%20mail.read%20mail.send");
-        System.out.println(endpoint);
-        //
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("GET");
-        conn.connect();
-
-        BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
-        StringBuilder sb = new StringBuilder();
-        String output;
-        while ((output = br.readLine()) != null) {
-            sb.append(output);
-        }
-        return sb.toString();
-    }
-
     public String refreshToken(String refreshToken, String clientId, String clientSecret) {
         String tenantId = "common";
         String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/token ", tenantId);
@@ -80,33 +58,6 @@ public class SendEmailUsingGraphApi {
         //    Content-Type: application/x-www-form-urlencoded
 //                &scope=https%3A%2F%2Fgraph.microsoft.com%2Fmail.read
         return null;
-    }
-
-    public String getRefreshToken(String tenantId, String clientId, String clientSecret, String code) throws UnsupportedEncodingException {
-        String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/token ", tenantId);
-        String postBody = String.format("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s&client_secret=%s",
-                code, decode("http://localhost:3000/auth/callback"), clientId, clientSecret);
-        System.out.println(String.format("$body = @{\n\"grant_type\"=\"authorization_code\"\n\"code\"=\"%s\"\n\"redirect_uri\"=\"%s\"\n\"client_id\"=\"%s\"\n\"client_secret\"=\"%s\"\n}", code, decode("http://localhost:3000/auth/callback"), clientId, clientSecret));
-        String accessToken = null;
-        String refreshToken = null;
-        try {
-            JsonParser parser = executeCall(endpoint, postBody);
-            //String accessToken = null;
-            while (parser.nextToken() != JsonToken.END_OBJECT) {
-                String name = parser.getCurrentName();
-                if ("access_token".equals(name)) {
-                    parser.nextToken();
-                    accessToken = parser.getText();
-                }
-                if ("refresh_token".equals(name)) {
-                    parser.nextToken();
-                    refreshToken = parser.getText();
-                }
-            }
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-        }
-        return refreshToken;
     }
 
     private JsonParser executeCall(String endpoint, String postBody) throws IOException {
@@ -186,7 +137,7 @@ public class SendEmailUsingGraphApi {
         SendEmailUsingGraphApi sendEmailUsingGraphApi = new SendEmailUsingGraphApi();
         if (props.getProperty("refreshToken") == null) {
             System.out.println("brak refresh tokenu, uruchom fetch, aby go wygenerować");
-            System.exit(2);
+            System.exit(5);
         }
         String refreshToken = props.getProperty("refreshToken");
         String accessToken = sendEmailUsingGraphApi.refreshToken(refreshToken, clientId, clientSecret);

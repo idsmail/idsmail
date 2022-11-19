@@ -44,6 +44,9 @@ Aplikacja zacznie pracować dalej ściągając załączniki z maili na serwerze 
 ### drugie uruchomienie
 Aplikacja zapisze załączniki z maili na serwerze w folderze, z którego ją uruchomiono.
 
+## Kody błędów zwracane przez outlook365Fetch
+__3__ - nie udało się wczytać pliku z konfiguracją, np _app.cfg_
+__4__ - nie udało się zapisać załącznika, powodów może być wiele
 
 
 

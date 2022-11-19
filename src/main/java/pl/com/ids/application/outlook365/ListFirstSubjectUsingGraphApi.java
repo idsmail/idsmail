@@ -34,7 +34,6 @@ public class ListFirstSubjectUsingGraphApi {
                 "&scope=%s" +
                 "&state=12345", tenantId, clientId, decode("http://localhost:3000/auth/callback"), "offline_access%20user.read%20mail.read%20mail.send");
         System.out.println(endpoint);
-        //
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         conn.setRequestMethod("GET");
         conn.connect();
@@ -79,16 +78,13 @@ public class ListFirstSubjectUsingGraphApi {
         String postBody = String.format("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s&client_secret=%s",
                 code, decode("http://localhost:3000/auth/callback"), clientId, clientSecret);
         System.out.println(String.format("$body = @{\n\"grant_type\"=\"authorization_code\"\n\"code\"=\"%s\"\n\"redirect_uri\"=\"%s\"\n\"client_id\"=\"%s\"\n\"client_secret\"=\"%s\"\n}", code, decode("http://localhost:3000/auth/callback"), clientId, clientSecret));
-        String accessToken = null;
         String refreshToken = null;
         try {
             JsonParser parser = executeCall(endpoint, postBody);
-            //String accessToken = null;
             while (parser.nextToken() != JsonToken.END_OBJECT) {
                 String name = parser.getCurrentName();
                 if ("access_token".equals(name)) {
                     parser.nextToken();
-                    accessToken = parser.getText();
                 }
                 if ("refresh_token".equals(name)) {
                     parser.nextToken();
@@ -119,15 +115,13 @@ public class ListFirstSubjectUsingGraphApi {
         String cfgFileName = args.length > 0 && args[0] != null ? args[0] : "app.cfg";
         if (!new File(cfgFileName).exists()) {
             System.out.println(String.format("plik cfg nie istnieje %s", cfgFileName));
-            System.exit(2);
+            System.exit(3);
         }
         Properties props = new Properties();
         props.load(new FileReader(cfgFileName));
 
         String clientId = props.getProperty("clientId");
         String clientSecret = props.getProperty("clientSecret");
-        // String accessTokenClientCredentials = AuthTokenAccess.getAccessToken("common", clientId, clientSecret, "mail.read");
-        // System.out.println(Base64.getDecoder().decode(accessTokenClientCredentials.split("\\.")[1]));
 
         ListFirstSubjectUsingGraphApi listFirstSubjectUsingGraphApi = new ListFirstSubjectUsingGraphApi();
         if (props.getProperty("refreshToken") == null) {
@@ -164,8 +158,10 @@ public class ListFirstSubjectUsingGraphApi {
                     outputStream.write(attachment.contentBytes);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
+                    System.exit(4);
                 } catch (IOException e) {
                     e.printStackTrace();
+                    System.exit(4);
                 }
 
             });
