@@ -103,10 +103,23 @@ public class ListFirstSubjectUsingGraphApi {
         conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
         conn.setDoOutput(true);
         conn.getOutputStream().write(postBody.getBytes());
-        conn.connect();
         JsonFactory factory = new JsonFactory();
-        JsonParser parser = factory.createParser(conn.getInputStream());
-        return parser;
+        try {
+            conn.connect();
+            JsonParser parser = factory.createParser(conn.getInputStream());
+            return parser;
+        } catch (IOException ioe) {
+            JsonParser parser = factory.createParser(conn.getErrorStream());
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                String name = parser.getCurrentName();
+                if ("error_description".equals(name)) {
+                    System.out.print("Error occurred: ");
+                    System.out.println(parser.getText());
+                }
+                parser.nextToken();
+            }
+            throw ioe;
+        }
     }
 
     public static void main(String[] args) throws IOException {
@@ -132,6 +145,7 @@ public class ListFirstSubjectUsingGraphApi {
             String refreshToken = listFirstSubjectUsingGraphApi.getRefreshToken("common", clientId, clientSecret, code);
             props.setProperty("refreshToken", refreshToken);
             props.store(new FileOutputStream(cfgFileName), null);
+            System.exit(15);
         }
         String refreshToken = props.getProperty("refreshToken");
         String accessToken = listFirstSubjectUsingGraphApi.refreshToken(refreshToken, clientId, clientSecret);

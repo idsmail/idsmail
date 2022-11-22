@@ -1,0 +1,6 @@
+app.cfg
+.idea
+idsmail.iml
+target
+*.xml
+nullout.txt
