@@ -141,8 +141,9 @@ public class IdentityPlatfomClient {
             return processResponse(parser).getRefreshToken();
         } catch (Exception e) {
             System.err.println(e.getMessage());
-            return null;
+            System.exit(6);
         }
+        return null;
     }
 
 
@@ -165,7 +166,7 @@ public class IdentityPlatfomClient {
         } catch (IOException e) {
             System.err.println(e.getMessage());
             e.printStackTrace();
-            System.exit(18);
+            System.exit(7);
         }
         return null;
     }

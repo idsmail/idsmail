@@ -48,7 +48,8 @@ Aplikacja zapisze załączniki z maili na serwerze w folderze, z którego ją ur
 __3__ - nie udało się wczytać pliku z konfiguracją, np _app.cfg_
 
 __4__ - nie udało się zapisać załącznika, powodów może być wiele
-
+__6__ - nie można pobrać refresh tokenu
+__7__ - błąd podczas użycia refresh tokeny do wygenerowania access tokenu
 __16__ - użyto nieprawidłowy refresh token
 
 __17__ - refresh token wygasł, trzeba usunąc z app.cfg i uruchomić fetch jeszcze raz
