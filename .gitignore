@@ -4,3 +4,4 @@ idsmail.iml
 target
 *.xml
 nullout.txt
+sendMail.log
