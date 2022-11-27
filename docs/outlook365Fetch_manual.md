@@ -46,7 +46,11 @@ Aplikacja zapisze załączniki z maili na serwerze w folderze, z którego ją ur
 
 ## Kody błędów zwracane przez outlook365Fetch
 __3__ - nie udało się wczytać pliku z konfiguracją, np _app.cfg_
+
 __4__ - nie udało się zapisać załącznika, powodów może być wiele
 
+__16__ - użyto nieprawidłowy refresh token
+
+__17__ - refresh token wygasł, trzeba usunąc z app.cfg i uruchomić fetch jeszcze raz
 
 

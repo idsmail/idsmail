@@ -34,32 +34,6 @@ public class SendEmailUsingGraphApi {
         return URLDecoder.decode(value, StandardCharsets.UTF_8.toString());
     }
 
-    public String refreshToken(String refreshToken, String clientId, String clientSecret) {
-        String tenantId = "common";
-        String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/token ", tenantId);
-        String accessToken = null;
-        try {
-            String postBody = String.format("grant_type=refresh_token&refresh_token=%s&redirect_uri=%s&client_id=%s&client_secret=%s&scope=%s",
-                    refreshToken, decode("http://localhost:3000/auth/callback"), clientId, clientSecret, "offline_access%20user.read%20mail.read%20mail.send");
-            System.out.println(String.format("$body = @{\n\"grant_type\"=\"refresh_token\"\n\"refresh_token\"=\"%s\"\n\"redirect_uri\"=\"%s\"\n\"client_id\"=\"%s\"\n\"client_secret\"=\"%s\"\n\"scope\"=\"%s\"}", refreshToken, decode("http://localhost:3000/auth/callback"), clientId, clientSecret, "offline_access%20user.read%20mail.read%20mail.send"));
-            JsonParser parser = executeCall(endpoint, postBody);
-            while (parser.nextToken() != JsonToken.END_OBJECT) {
-                String name = parser.getCurrentName();
-                if ("access_token".equals(name)) {
-                    parser.nextToken();
-                    accessToken = parser.getText();
-                }
-            }
-            return accessToken;
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        //    Content-Type: application/x-www-form-urlencoded
-//                &scope=https%3A%2F%2Fgraph.microsoft.com%2Fmail.read
-        return null;
-    }
-
     private JsonParser executeCall(String endpoint, String postBody) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         conn.setRequestMethod("POST");
@@ -133,6 +107,7 @@ public class SendEmailUsingGraphApi {
         Properties props = sendOptionsProcessor.getSendOptions(args, new IdsLogger("sendMail.log"), new SimpleDebugger());
         String clientId = props.getProperty("clientId");
         String clientSecret = props.getProperty("clientSecret");
+        IdentityPlatfomClient identityPlatfomClient = new IdentityPlatfomClient();
 
         SendEmailUsingGraphApi sendEmailUsingGraphApi = new SendEmailUsingGraphApi();
         if (props.getProperty("refreshToken") == null) {
@@ -140,11 +115,11 @@ public class SendEmailUsingGraphApi {
             System.exit(5);
         }
         String refreshToken = props.getProperty("refreshToken");
-        String accessToken = sendEmailUsingGraphApi.refreshToken(refreshToken, clientId, clientSecret);
+        TokenPair tokenPair = identityPlatfomClient.refreshToken(refreshToken, clientId, clientSecret);
         GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(new TokenCredentialAuthProvider(new TokenCredential() {
             @Override
             public Mono<AccessToken> getToken(TokenRequestContext tokenRequestContext) {
-                return Mono.just(new AccessToken(accessToken, OffsetDateTime.MAX));
+                return Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX));
             }
         })).buildClient();
 

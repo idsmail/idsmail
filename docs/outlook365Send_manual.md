@@ -26,6 +26,8 @@ __3__ - nie znaleziono pliku konfiguracyjnego, np. _app.cfg_
 
 __5__ - refresh token nie został jeszcze wygenerowany, należy uruchomić fetchOutlook365.exe, aby wygenerować
 
+__16__ - użyto nieprawidłowy refresh token,
 
+__17__ - refresh token wygasł, trzeba usunąc z app.cfg i uruchomić fetch jeszcze raz
 
 
