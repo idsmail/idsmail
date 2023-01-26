@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -68,25 +66,14 @@ public class IdentityPlatfomClient {
         return URLDecoder.decode("http://localhost:3000/auth/callback", StandardCharsets.UTF_8.toString());
     }
 
-    public String getAuthorizationCode(String tenantId, String clientId) throws IOException {
+    public void getAuthorizationCode(String tenantId, String clientId) throws IOException {
         String endpoint = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s" +
                 "&response_type=code" +
                 "&redirect_uri=%s" +
                 "&response_mode=query" +
                 "&scope=%s" +
-                "&state=12345", tenantId, clientId, decodeRedirectUri(), "offline_access%20user.read%20mail.read%20mail.send");
+                "&state=12345", tenantId, clientId, decodeRedirectUri(), "offline_access%20user.read%20mail.read%20mail.send%20mail.readwrite");
         System.out.println(endpoint);
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("GET");
-        conn.connect();
-
-        BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
-        StringBuilder sb = new StringBuilder();
-        String output;
-        while ((output = br.readLine()) != null) {
-            sb.append(output);
-        }
-        return sb.toString();
     }
 
     private JsonParser executeCall(String endpoint, String postBody) throws IOException{

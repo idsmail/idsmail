@@ -1,4 +1,15 @@
+
 ## Instrukcja konfiguracji outlook365Fetch.exe
+### parametry wywołania
+
+outlook365Fetch.exe <katalog_docelowy> [<ścieżka_do_pliku_konfiguracyjnego>]
+
+gdzie
+
+*katalog_docelowy* - wskazuje katalog do którego zapisać pobrance załączniki, obowiązkowy
+*ścieżka_do_pliku_konfiguracyjnego* - lokalizajca pliku app.cfg, parametr opcjonalny
+
+
 ### plik cfg
 Plik _app.cfg_ zawiera infromacje potrzebne do połączenia z kontem _printerwarsaw@bacardi.com_. Uwaga aplikacja outlook365Fetch.exe domyślnie poszukuje pliku w katalogu,
 z którego została uruchomiona, a nie w katalogu w którym została zainstalowana.
@@ -48,6 +59,9 @@ Aplikacja zapisze załączniki z maili na serwerze w folderze, z którego ją ur
 __3__ - nie udało się wczytać pliku z konfiguracją, np _app.cfg_
 
 __4__ - nie udało się zapisać załącznika, powodów może być wiele
+
+__5__ - nie podano folderu docelowego, paramter wymagany, pierwszy paramter w linii polecen
+
 __6__ - nie można pobrać refresh tokenu
 __7__ - błąd podczas użycia refresh tokeny do wygenerowania access tokenu
 __16__ - użyto nieprawidłowy refresh token

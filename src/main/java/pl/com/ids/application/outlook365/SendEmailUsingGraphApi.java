@@ -3,9 +3,6 @@ package pl.com.ids.application.outlook365;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.AttachmentCollectionPage;
@@ -18,10 +15,6 @@ import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,22 +23,6 @@ import java.util.LinkedList;
 import java.util.Properties;
 
 public class SendEmailUsingGraphApi {
-    private String decode(String value) throws UnsupportedEncodingException {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8.toString());
-    }
-
-    private JsonParser executeCall(String endpoint, String postBody) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("POST");
-        conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        conn.setDoOutput(true);
-        conn.getOutputStream().write(postBody.getBytes());
-        conn.connect();
-        JsonFactory factory = new JsonFactory();
-        JsonParser parser = factory.createParser(conn.getInputStream());
-        return parser;
-    }
-
     private void sendEmail(GraphServiceClient graphClient, Properties props) throws IOException {
         String fullFilePath = props.getProperty(SendOptionsProcessor.FILE_NAME);
 
@@ -74,8 +51,7 @@ public class SendEmailUsingGraphApi {
         attachmentsList.add(attachment);
         AttachmentCollectionResponse attachmentCollectionResponse = new AttachmentCollectionResponse();
         attachmentCollectionResponse.value = attachmentsList;
-        AttachmentCollectionPage attachmentCollectionPage = new AttachmentCollectionPage(attachmentCollectionResponse, null);
-        message.attachments = attachmentCollectionPage;
+        message.attachments = new AttachmentCollectionPage(attachmentCollectionResponse, null);
         message.toRecipients = buildRecipients(props.getProperty(SendOptionsProcessor.ADDRESS_TO));
         boolean saveToSentItems = false;
 
@@ -91,7 +67,7 @@ public class SendEmailUsingGraphApi {
 
     @NotNull
     private LinkedList<Recipient> buildRecipients(String toAddress) {
-        LinkedList<Recipient> toRecipientsList = new LinkedList<Recipient>();
+        LinkedList<Recipient> toRecipientsList = new LinkedList<>();
         Recipient toRecipients = new Recipient();
         EmailAddress emailAddress = new EmailAddress();
         emailAddress.address = toAddress;
@@ -116,12 +92,8 @@ public class SendEmailUsingGraphApi {
         }
         String refreshToken = props.getProperty("refreshToken");
         TokenPair tokenPair = identityPlatfomClient.refreshToken(refreshToken, clientId, clientSecret);
-        GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(new TokenCredentialAuthProvider(new TokenCredential() {
-            @Override
-            public Mono<AccessToken> getToken(TokenRequestContext tokenRequestContext) {
-                return Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX));
-            }
-        })).buildClient();
+        TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(tokenRequestContext -> Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX)));
+        GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
 
 
         sendEmailUsingGraphApi.sendEmail(client, props);

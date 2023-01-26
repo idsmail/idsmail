@@ -9,10 +9,9 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import reactor.core.publisher.Mono;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,11 +33,19 @@ public class ListFirstSubjectUsingGraphApi {
     public static void main(String[] args) throws IOException {
         // client id od aplikacji https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Overview/appId/4e33db79-7e64-4bc7-a482-ad24de40913d/isMSAApp/true
         // dostep na moj gmail
-        String cfgFileName = args.length > 0 && args[0] != null ? args[0] : "app.cfg";
+        if (args.length < 1) {
+            System.out.print("nie podano folderu docelowego");
+            System.exit(5);
+        }
+
+        String destFolder =  args[0];
+
+        String cfgFileName = args.length > 1 && args[1] != null ? args[1] : "app.cfg";
         if (!new File(cfgFileName).exists()) {
             System.out.printf("plik cfg nie istnieje %s%n", cfgFileName);
             System.exit(3);
         }
+
         Properties props = new Properties();
         props.load(new FileReader(cfgFileName));
 
@@ -47,7 +54,7 @@ public class ListFirstSubjectUsingGraphApi {
 
         IdentityPlatfomClient identityPlatfomClient = new IdentityPlatfomClient();
         if (props.getProperty("refreshToken") == null) {
-            String common = identityPlatfomClient.getAuthorizationCode("common", clientId);
+            identityPlatfomClient.getAuthorizationCode("common", clientId);
             Scanner scanner = new Scanner(System.in);
             String code = scanner.nextLine();
             System.out.println("Your string: " + code);
@@ -66,16 +73,18 @@ public class ListFirstSubjectUsingGraphApi {
         //https://docs.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0
         List<Message> messages = Objects.requireNonNull(client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").get()).getCurrentPage();
         messages.forEach(m -> {
-            System.out.println(m.subject);
             List<Attachment> attachments = client.me().messages(m.id).attachments().buildRequest().get().getCurrentPage();
             attachments.forEach(a -> {
                 FileAttachment attachment = (FileAttachment) client.me().messages(m.id).attachments(a.id)
                         .buildRequest()
                         .get();
-                File outputFile = new File(attachment.name);
+
+
+                Path pathToFolder = Paths.get(destFolder);
+                Path outputFile = pathToFolder.resolve(attachment.name);
 
                 try {
-                    FileOutputStream outputStream = new FileOutputStream(outputFile);
+                    FileOutputStream outputStream = new FileOutputStream(outputFile.toFile());
                     outputStream.write(attachment.contentBytes);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -83,6 +92,7 @@ public class ListFirstSubjectUsingGraphApi {
                 }
 
             });
+            //client.me().messages(m.id).buildRequest().delete();
 
         });
 
