@@ -1,12 +1,16 @@
 
+<!---
+https://cloudconvert.com/md-to-pdf
+-->
 ## Instrukcja konfiguracji outlook365Fetch.exe
 ### parametry wywołania
 
-outlook365Fetch.exe <katalog_docelowy> [<ścieżka_do_pliku_konfiguracyjnego>]
+outlook365Fetch.exe \<katalog_docelowy\> [\<ścieżka_do_pliku_konfiguracyjnego\>]
 
 gdzie
 
 *katalog_docelowy* - wskazuje katalog do którego zapisać pobrance załączniki, obowiązkowy
+
 *ścieżka_do_pliku_konfiguracyjnego* - lokalizajca pliku app.cfg, parametr opcjonalny
 
 
