@@ -69,32 +69,10 @@ public class ListFirstSubjectUsingGraphApi {
         GraphServiceClient<Request> client = GraphServiceClient.builder().authenticationProvider(
                 new TokenCredentialAuthProvider(tokenRequestContext -> Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX)))
         ).buildClient();
-
+        MessageProcessor messageProcessor = new MessageProcessor(client, destFolder);
         //https://docs.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0
-        List<Message> messages = Objects.requireNonNull(client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").get()).getCurrentPage();
-        messages.forEach(m -> {
-            List<Attachment> attachments = client.me().messages(m.id).attachments().buildRequest().get().getCurrentPage();
-            attachments.forEach(a -> {
-                FileAttachment attachment = (FileAttachment) client.me().messages(m.id).attachments(a.id)
-                        .buildRequest()
-                        .get();
-
-
-                Path pathToFolder = Paths.get(destFolder);
-                Path outputFile = pathToFolder.resolve(attachment.name);
-
-                try {
-                    FileOutputStream outputStream = new FileOutputStream(outputFile.toFile());
-                    outputStream.write(attachment.contentBytes);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.exit(4);
-                }
-
-            });
-            //client.me().messages(m.id).buildRequest().delete();
-
-        });
+        List<Message> messages = Objects.requireNonNull(client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").expand("attachments").get()).getCurrentPage();
+        messages.forEach(messageProcessor::processMessage);
 
     }
 }
