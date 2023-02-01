@@ -5,8 +5,9 @@ import com.microsoft.graph.models.FileAttachment;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
+import pl.com.ids.io.AugmentedFileWriter;
 
-import java.io.FileOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,11 +34,10 @@ public class MessageProcessor {
                 return false;
             }
             Path pathToFolder = Paths.get(destFolder);
-            Path outputFile = pathToFolder.resolve(name);
+            AugmentedFileWriter fileWriter = new AugmentedFileWriter(false, true);
 
             try {
-                FileOutputStream outputStream = new FileOutputStream(outputFile.toFile());
-                outputStream.write(contentBytes);
+                fileWriter.storeFile(pathToFolder.toFile(), attachment.name, new ByteArrayInputStream(contentBytes));
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(4);

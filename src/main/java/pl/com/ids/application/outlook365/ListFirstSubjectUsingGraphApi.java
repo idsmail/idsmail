@@ -2,16 +2,15 @@ package pl.com.ids.application.outlook365;
 
 import com.azure.core.credential.AccessToken;
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
-import com.microsoft.graph.models.Attachment;
-import com.microsoft.graph.models.FileAttachment;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import reactor.core.publisher.Mono;
 
-import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
