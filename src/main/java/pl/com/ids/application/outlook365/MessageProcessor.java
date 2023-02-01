@@ -20,10 +20,10 @@ public class MessageProcessor {
     private final String destFolder;
 
     MessageProcessor(GraphServiceClient<Request> client, String destFolder) {
-
         this.client = client;
         this.destFolder = destFolder;
     }
+
     public void processMessage(Message message) {
         String id = message.id;
         List<Attachment> attachments = message.attachments.getCurrentPage();
