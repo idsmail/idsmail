@@ -3,24 +3,25 @@ package pl.com.ids.exchange;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import microsoft.exchange.webservices.data.autodiscover.IAutodiscoverRedirectionUrl;
-import microsoft.exchange.webservices.data.autodiscover.exception.AutodiscoverLocalException;
 import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.PropertySet;
 import microsoft.exchange.webservices.data.core.enumeration.misc.ConnectingIdType;
 import microsoft.exchange.webservices.data.core.enumeration.misc.ExchangeVersion;
 import microsoft.exchange.webservices.data.core.enumeration.property.WellKnownFolderName;
+import microsoft.exchange.webservices.data.core.service.item.EmailMessage;
 import microsoft.exchange.webservices.data.core.service.item.Item;
 import microsoft.exchange.webservices.data.credential.ExchangeCredentials;
-import microsoft.exchange.webservices.data.credential.TokenCredentials;
 import microsoft.exchange.webservices.data.credential.WebCredentials;
 import microsoft.exchange.webservices.data.misc.ImpersonatedUserId;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.ItemView;
 
+import javax.mail.Message;
 import java.net.URI;
 
 public class ListFirstSubject {
+    private static final String PATH_EWS = "EWS/Exchange.asmx";
+
     public static void main(String[] args) throws Exception {
         ListFirstSubject lfs = new ListFirstSubject();
         Options parse = lfs.parse(args);
@@ -39,10 +40,13 @@ public class ListFirstSubject {
             service.setUrl(new URI("https://outlook.office365.com/EWS/Exchange.asmx"));
             service.getHttpHeaders().put("Authorization", "Bearer " + getBearerToken() );
             service.getHttpHeaders().put("X-AnchorMailbox", parse.userName);
+            service.setImpersonatedUserId(new ImpersonatedUserId(ConnectingIdType.PrincipalName, WellKnownFolderName.Inbox.name()));
         } else {
-            service.setUrl(parse.hostUrl);
+            ExchangeCredentials webCredentials = new WebCredentials("emcs", "Startowe123!");
+            service.setCredentials(webCredentials);
+            service.setUrl(new URI("https://" + parse.hostUrl + "/" + PATH_EWS));
         }
-        service.setImpersonatedUserId(new ImpersonatedUserId(ConnectingIdType.PrincipalName, WellKnownFolderName.Inbox.name()));
+
         service.setTraceEnabled(true);
         listFirstItemSubject(service);
     }
@@ -72,7 +76,7 @@ public class ListFirstSubject {
     }
 
     private void listFirstItemSubject(ExchangeService service) throws Exception {
-        ItemView view = new ItemView(1);
+        ItemView view = new ItemView(5);
         WellKnownFolderName inbox = WellKnownFolderName.Inbox;
         FindItemsResults<Item> findResults = service.findItems(inbox, view);
 
@@ -81,9 +85,15 @@ public class ListFirstSubject {
 
         for (Item item : findResults.getItems()) {
             // Do something with the item as shownFetch
-            System.out.println("id==========" + item.getId());
+            //System.out.println("id==========" + item.getId());
             System.out.println("sub==========" + item.getSubject());
+            if (item instanceof EmailMessage) {
+                EmailMessage emailMessage = (EmailMessage) item;
+                System.out.println("from: " +  emailMessage.getSender().getName() + "<" + emailMessage.getSender().getAddress() + ">");
+            }
+            Thread.sleep(2000);
         }
+
     }
 
     private Options parse(String args[]) {
