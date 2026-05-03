@@ -1,7 +1,9 @@
 app.cfg
+app*.cfg
 .idea
 idsmail.iml
 target
 *.xml
 nullout.txt
 sendMail.log
+
