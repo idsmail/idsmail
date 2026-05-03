@@ -1,11 +1,11 @@
 package pl.com.ids.application.gcp;
 
-import com.sun.mail.smtp.SMTPTransport;
+import jakarta.mail.Transport;
 import pl.com.ids.infrastructure.Debugger;
 import pl.com.ids.infrastructure.DebuggerFactory;
 import pl.com.ids.infrastructure.IdsLogger;
 
-import javax.mail.MessagingException;
+import jakarta.mail.MessagingException;
 import java.io.File;
 import java.io.IOException;
 import java.security.Security;
@@ -38,7 +38,7 @@ public class SendXMLGoogle {
 
         try {
             final OAuthSMTPClient oAuthSMTPClient = new OAuthSMTPClient();
-            SMTPTransport smtpTransport = oAuthSMTPClient.connectToSmtp("smtp.gmail.com", 587, emailAddress, accessToken, proxy, debug);
+            Transport smtpTransport = oAuthSMTPClient.connectToSmtp("smtp.gmail.com", 587, emailAddress, accessToken, proxy, debug);
             Properties sessionProps = new Properties();
             String addressFrom = props.getProperty(ADDRESS_FROM);
             String addressTo = props.getProperty(ADDRESS_TO);

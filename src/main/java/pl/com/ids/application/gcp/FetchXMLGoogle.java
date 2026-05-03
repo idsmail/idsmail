@@ -1,17 +1,14 @@
 package pl.com.ids.application.gcp;
 
-import com.sun.mail.imap.IMAPSSLStore;
-import com.sun.mail.imap.IMAPStore;
+
+
+import jakarta.mail.*;
 import pl.com.ids.domain.Configuration;
 import pl.com.ids.domain.FetchOptions;
 import pl.com.ids.domain.FetchXML;
 import pl.com.ids.infrastructure.IdsLogger;
 import pl.com.ids.infrastructure.SimpleDebugger;
 
-import javax.mail.Folder;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.URLName;
 import java.io.FileReader;
 import java.io.IOException;
 import java.security.Provider;
@@ -49,7 +46,7 @@ public class FetchXMLGoogle {
                     proxy);
             String email_address = props.getProperty("email_address");
 
-            IMAPStore imapStore = new FetchXMLGoogle().connectToImap("imap.gmail.com",
+            Store imapStore = new FetchXMLGoogle().connectToImap("imap.gmail.com",
                     993,
                     email_address,
                     accessToken,
@@ -87,7 +84,7 @@ public class FetchXMLGoogle {
      * @param debug      Whether to enable debug logging on the IMAP connection.
      * @return An authenticated IMAPStore that can be used for IMAP operations.
      */
-    public IMAPStore connectToImap(String host,
+    public Store connectToImap(String host,
                                    int port,
                                    String userEmail,
                                    String oauthToken,
@@ -107,16 +104,17 @@ public class FetchXMLGoogle {
         session.setDebug(debug);
 
         final URLName unusedUrlName = null;
-        IMAPSSLStore store = new IMAPSSLStore(session, unusedUrlName);
+        Store store = session.getStore("imaps");
         final String emptyPassword = "";
-        store.connect(host, port, userEmail, emptyPassword);
+        store.connect(host, 993, userEmail, emptyPassword);
+
         return store;
     }
 
     private void setProxyInProps(Proxy proxy, Properties props) {
         props.put("mail.imaps.proxy.host", proxy.getHostName());
         props.put("mail.imaps.proxy.port", String.valueOf(proxy.getPort()));
-        props.put("mail.imaps.proxy.user", proxy.getCredentials().getUserPrincipal().getName());
+        props.put("mail.imaps.proxy.user", proxy.getCredentials());
         props.put("mail.imaps.proxy.password", proxy.getCredentials().getPassword());
     }
 }

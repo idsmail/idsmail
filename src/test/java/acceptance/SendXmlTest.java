@@ -10,9 +10,9 @@ import pl.com.ids.MimeMessageBuilder;
 import pl.com.ids.SendOptions;
 import pl.com.ids.application.standard.SendXML;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.IOException;
 

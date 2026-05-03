@@ -12,15 +12,16 @@ public class Proxy {
 
     public Proxy(String host, String port) {
         this.hostName = host;
-        this.port = Integer.parseInt(port);
+        this.port = port != null ? Integer.parseInt(port) : 0;
     }
 
     public Proxy(Properties props) {
         this(props.getProperty("proxy_host"), props.getProperty("proxy_port"));
         String userName = props.getProperty("proxy_user");
         String password = props.getProperty("proxy_password");
-        this.credentials = new UsernamePasswordCredentials(userName, password);
-
+        if (userName != null && password != null) {
+            this.credentials = new UsernamePasswordCredentials(userName, password);
+        }
     }
 
     public String getHostName() {

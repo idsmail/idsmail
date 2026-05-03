@@ -1,11 +1,13 @@
 package acceptance;
 
 import com.icegreen.greenmail.junit.GreenMailRule;
+import com.icegreen.greenmail.junit5.GreenMailExtension;
 import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMailUtil;
 import com.icegreen.greenmail.util.ServerSetup;
-import com.icegreen.greenmail.util.ServerSetupTest;
+
 import org.junit.*;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.rules.TemporaryFolder;
 import pl.com.ids.*;
 import pl.com.ids.application.standard.FetchXMLStd;
@@ -13,9 +15,9 @@ import pl.com.ids.domain.Configuration;
 import pl.com.ids.domain.FetchOptions;
 import pl.com.ids.application.standard.Service;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
@@ -23,8 +25,8 @@ import java.util.Optional;
 public class FetchXmlPop3Test {
     public static final String USER = "user@greenmail.com";
     public static final String PASSWORD = "password";
-    @Rule
-    public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTP_POP3);
+    @RegisterExtension
+    public static final GreenMailExtension greenMail = new GreenMailExtension(IdsServerSetup.extendTo(ServerSetup.IMAPS));
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();

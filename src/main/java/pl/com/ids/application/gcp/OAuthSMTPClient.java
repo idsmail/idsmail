@@ -1,21 +1,21 @@
 package pl.com.ids.application.gcp;
 
-import com.sun.mail.smtp.SMTPTransport;
+import jakarta.mail.Transport;
 import pl.com.ids.MimeMessageBuilder;
 import pl.com.ids.infrastructure.Debugger;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.URLName;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.URLName;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
 class OAuthSMTPClient {
-    void sendMessage(Debugger debugger, boolean debug, SMTPTransport smtpTransport, Properties sessionProps, String addressFrom, String addressTo, File f) throws MessagingException, IOException {
+    void sendMessage(Debugger debugger, boolean debug, Transport smtpTransport, Properties sessionProps, String addressFrom, String addressTo, File f) throws MessagingException, IOException {
         Session session = Session.getInstance(sessionProps);
         String msgText1 = "Sending a file " + f.getName() + " .\n";
         String subject = "Sending a file " + f.getName();
@@ -26,7 +26,7 @@ class OAuthSMTPClient {
         smtpTransport.sendMessage(msg, new InternetAddress[]{new InternetAddress(addressTo)});
     }
 
-    SMTPTransport connectToSmtp(String host,
+    Transport connectToSmtp(String host,
                                 int port,
                                 String userEmail,
                                 String oauthToken,
@@ -47,7 +47,7 @@ class OAuthSMTPClient {
         session.setDebug(debug);
 
         final URLName unusedUrlName = null;
-        SMTPTransport transport = new SMTPTransport(session, unusedUrlName);
+        Transport transport = session.getTransport("smtp");
         // If the password is non-null, SMTP tries to do AUTH LOGIN.
         final String emptyPassword = "";
         transport.connect(host, port, userEmail, emptyPassword);

@@ -1,10 +1,11 @@
 package pl.com.ids.application.outlook365;
 
 import com.azure.core.credential.AccessToken;
-import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
+
+import com.azure.core.credential.TokenCredential;
 import com.microsoft.graph.models.Message;
-import com.microsoft.graph.requests.GraphServiceClient;
-import okhttp3.Request;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+
 import reactor.core.publisher.Mono;
 
 import java.io.File;
@@ -65,12 +66,23 @@ public class ListFirstSubjectUsingGraphApi {
         TokenPair tokenPair = identityPlatfomClient.refreshToken(refreshToken, clientId, clientSecret);
         updateRefreshToken(props, cfgFileName, tokenPair.getRefreshToken());
 
-        GraphServiceClient<Request> client = GraphServiceClient.builder().authenticationProvider(
-                new TokenCredentialAuthProvider(tokenRequestContext -> Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX)))
-        ).buildClient();
-        MessageProcessor messageProcessor = new MessageProcessor(client, destFolder);
+        // Tworzymy credential bezpośrednio przekazujący Twój statyczny token
+        TokenCredential credential = tokenRequestContext ->
+                Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX));
+
+        // Domyślny zakres uprawnień (scope) dla Microsoft Graph
+        String[] scopes = new String[] { "https://microsoft.com" };
+
+        // W wersji v6 klienta tworzymy bezpośrednio operatorem 'new'
+        GraphServiceClient client = new GraphServiceClient(credential, scopes);
+
+
+            MessageProcessor messageProcessor = new MessageProcessor(client, destFolder);
         //https://docs.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0
-        List<Message> messages = Objects.requireNonNull(client.me().mailFolders("Inbox").messages().buildRequest().select("sender,subject").expand("attachments").get()).getCurrentPage();
+        List<Message> messages = Objects.requireNonNull(client.me().mailFolders().byMailFolderId("Inbox").messages().get(requestConfiguration -> {
+            requestConfiguration.queryParameters.select = new String[]{"sender", "subject"};
+            requestConfiguration.queryParameters.expand = new String[]{"attachments"};
+        })).getValue();
         messages.forEach(messageProcessor::processMessage);
 
     }

@@ -1,6 +1,7 @@
 package pl.com.ids.application.standard;
 
 
+import jakarta.mail.*;
 import pl.com.ids.*;
 import pl.com.ids.domain.Configuration;
 import pl.com.ids.domain.FetchOptions;
@@ -9,7 +10,6 @@ import pl.com.ids.infrastructure.Debugger;
 import pl.com.ids.infrastructure.DebuggerFactory;
 import pl.com.ids.infrastructure.IdsLogger;
 
-import javax.mail.*;
 import java.io.IOException;
 import java.util.Properties;
 

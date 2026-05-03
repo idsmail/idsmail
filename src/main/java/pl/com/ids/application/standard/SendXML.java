@@ -16,10 +16,10 @@ import java.security.Security;
 import java.util.List;
 import java.util.Properties;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
 
 import static pl.com.ids.MimeMessageBuilder.buildMimeMessage;
 
@@ -125,7 +125,12 @@ public class SendXML {
     }
 
     public void send(SendOptions sendOptions, String to, String from, String smtphost, Integer smtpport) {
-        Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+        //  POPRAWNE W MODERN JAVA
+        if (Security.getProvider("SunJSSE") == null) {
+            // Nie musisz tworzyć nowej instancji klasy, pobieramy ją po nazwie
+            Security.addProvider(Security.getProvider("SunJSSE"));
+        }
+
 
         /**
          * sendfile will create a multipart message with the second block of the

@@ -25,7 +25,7 @@ z którego została uruchomiona, a nie w katalogu w którym została zainstalowa
 ### przed uruchomieniem
 należy stworzyć plik app.cfg z wypelnionymi _clientId_ oraz _clientSecret_, zawartość pliku będzie następująca:
 ```
-clientId=4e33db79-7e64-4bc7-a482-ad24de40913d
+clientId=bd0ac9d6-b8c2-456e-937c-c9f51236e57d
 clientSecret=secret
 ```
 gdzie secret należy zamienić na wartość przekazaną w sposób bezpieczny przez Karola
@@ -36,7 +36,7 @@ Na ekranie pojawi się link który należy otworzyć w przeglądarce (testowane 
 (łamania linii wprowadziłem dla lepszej czytelności, powinna to być jedna linia)
 ```html
 https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
-client_id=4e33db79-7e64-4bc7-a482-ad24de40913d&response_type=code
+client_id=bd0ac9d6-b8c2-456e-937c-c9f51236e57d&response_type=code
 &redirect_uri=http://localhost:3000/auth/callback&response_mode=query
 &scope=offline_access%20user.read%20mail.read%20mail.send&state=12345
 ```

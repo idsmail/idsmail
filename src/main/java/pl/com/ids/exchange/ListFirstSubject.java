@@ -16,7 +16,6 @@ import microsoft.exchange.webservices.data.misc.ImpersonatedUserId;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.ItemView;
 
-import javax.mail.Message;
 import java.net.URI;
 
 public class ListFirstSubject {

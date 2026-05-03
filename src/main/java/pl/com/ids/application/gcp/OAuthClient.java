@@ -1,6 +1,6 @@
 package pl.com.ids.application.gcp;
 
-import microsoft.exchange.webservices.data.core.ExchangeServiceBase;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;

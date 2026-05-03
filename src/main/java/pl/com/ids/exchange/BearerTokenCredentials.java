@@ -2,6 +2,7 @@ package pl.com.ids.exchange;
 import microsoft.exchange.webservices.data.core.request.HttpWebRequest;
 import microsoft.exchange.webservices.data.credential.ExchangeCredentials;
 
+import java.util.HashMap;
 import java.util.Map;
 public final class BearerTokenCredentials extends ExchangeCredentials {
 
@@ -30,7 +31,8 @@ public final class BearerTokenCredentials extends ExchangeCredentials {
 
     @Override
     public void prepareWebRequest(HttpWebRequest request) {
-        Map<String, String> headersMap = request.getHeaders();
+        // Tworzymy NOWĄ mapę na bazie istniejącej, aby uniknąć błędu niemodyfikowalnej kolekcji
+        Map<String, String> headersMap = new HashMap<>(request.getHeaders());
         String bearerValue = BEARER_AUTH_PREAMBLE + token;
         headersMap.put(AUTHORIZATION, bearerValue);
         //headersMap.put("X-AnchorMailbox","esj_office365_imap@genesyslab.onmicrosoft.com");

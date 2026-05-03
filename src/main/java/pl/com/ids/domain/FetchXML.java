@@ -1,10 +1,10 @@
 package pl.com.ids.domain;
 
+import jakarta.mail.*;
 import pl.com.ids.*;
 import pl.com.ids.infrastructure.Debugger;
 import pl.com.ids.io.AugmentedFileWriter;
 
-import javax.mail.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;

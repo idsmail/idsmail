@@ -2,15 +2,15 @@ package pl.com.ids.application.standard;
 
 import pl.com.ids.Protocol;
 
-import javax.mail.URLName;
+import jakarta.mail.URLName;
 
 public class Service {
     private final String host;
-    private int port;
+    private final int port;
     private final String username;
     private final String password;
-    private Protocol protocol;
-    private Boolean useTls;
+    private final Protocol protocol;
+    private final Boolean useTls;
 
     public Protocol getProtocol() {
         return protocol;

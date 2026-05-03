@@ -3,11 +3,8 @@ package pl.com.ids.application.outlook365;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
-import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.models.*;
-import com.microsoft.graph.requests.AttachmentCollectionPage;
-import com.microsoft.graph.requests.AttachmentCollectionResponse;
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import org.jetbrains.annotations.NotNull;
 import pl.com.ids.infrastructure.IdsLogger;
 import pl.com.ids.infrastructure.SimpleDebugger;
@@ -36,33 +33,42 @@ public class SendEmailUsingGraphApi {
         String subject = "Sending a file " + fileName;
 
         Message message = new Message();
-        message.subject = subject;
+        message.setSubject(subject);
+
         ItemBody body = new ItemBody();
-        body.contentType = BodyType.TEXT;
-        body.content = msgText1;
-        message.body = body;
+        body.setContentType(BodyType.Text); // Uwaga: wielkość liter w typie wyliczeniowym
+        body.setContent(msgText1);
+        message.setBody(body);
+
         LinkedList<Attachment> attachmentsList = new LinkedList<>();
         byte[] content = Files.readAllBytes(new File(fullFilePath).toPath());
+
         FileAttachment attachment = new FileAttachment();
-        attachment.name = fileName.toString();
-        attachment.contentType = "text/plain";
-        attachment.oDataType = "#microsoft.graph.fileAttachment";
-        attachment.contentBytes = content;
+        attachment.setName(fileName.toString());
+        attachment.setContentType("text/plain");
+        attachment.setOdataType("#microsoft.graph.fileAttachment");
+        attachment.setContentBytes(content);
+
         attachmentsList.add(attachment);
-        AttachmentCollectionResponse attachmentCollectionResponse = new AttachmentCollectionResponse();
-        attachmentCollectionResponse.value = attachmentsList;
-        message.attachments = new AttachmentCollectionPage(attachmentCollectionResponse, null);
-        message.toRecipients = buildRecipients(props.getProperty(SendOptionsProcessor.ADDRESS_TO));
+        message.setAttachments(attachmentsList); // Pamiętaj o przypisaniu listy do obiektu wiadomości
+
+        // 1. W v6 po prostu przypisujesz listę załączników do obiektu wiadomości
+        message.setAttachments(attachmentsList);
+
+        // 2. Przypisanie odbiorców (pola są teraz prywatne, więc używamy setterów)
+        message.setToRecipients(buildRecipients(props.getProperty(SendOptionsProcessor.ADDRESS_TO)));
+
         boolean saveToSentItems = false;
 
+        // 3. W v6 tworzymy obiekt konfiguracji żądania wysyłki
+        com.microsoft.graph.users.item.sendmail.SendMailPostRequestBody requestBody = new com.microsoft.graph.users.item.sendmail.SendMailPostRequestBody();
+        requestBody.setMessage(message);
+        requestBody.setSaveToSentItems(saveToSentItems);
+
+        // 4. Bezpośrednie wywołanie metody akcji sendMail()
         graphClient.me()
-                .sendMail(UserSendMailParameterSet
-                        .newBuilder()
-                        .withMessage(message)
-                        .withSaveToSentItems(saveToSentItems)
-                        .build())
-                .buildRequest()
-                .post();
+                .sendMail()
+                .post(requestBody);
     }
 
     @NotNull
@@ -70,8 +76,8 @@ public class SendEmailUsingGraphApi {
         LinkedList<Recipient> toRecipientsList = new LinkedList<>();
         Recipient toRecipients = new Recipient();
         EmailAddress emailAddress = new EmailAddress();
-        emailAddress.address = toAddress;
-        toRecipients.emailAddress = emailAddress;
+        emailAddress.setAddress(toAddress);
+        toRecipients.setEmailAddress(emailAddress);
         toRecipientsList.add(toRecipients);
         return toRecipientsList;
     }
@@ -92,8 +98,16 @@ public class SendEmailUsingGraphApi {
         }
         String refreshToken = props.getProperty("refreshToken");
         TokenPair tokenPair = identityPlatfomClient.refreshToken(refreshToken, clientId, clientSecret);
-        TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(tokenRequestContext -> Mono.just(new AccessToken(tokenPair.getAccessToken(), OffsetDateTime.MAX)));
-        GraphServiceClient client = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
+
+        // 1. Zamiast AuthProvidera tworzymy obiekt TokenCredential za pomocą lambdy
+        com.azure.core.credential.TokenCredential credential = tokenRequestContext ->
+                Mono.just(new com.azure.core.credential.AccessToken(tokenPair.getAccessToken(), java.time.OffsetDateTime.MAX));
+
+        // 2. Definiujemy domyślny zakres uprawnień (scope) dla Graph API
+        String[] scopes = new String[] { "https://microsoft.com" };
+
+        // 3. Tworzymy klienta operatorem 'new', przekazując poświadczenia i zakresy
+        GraphServiceClient client = new GraphServiceClient(credential, scopes);
 
 
         sendEmailUsingGraphApi.sendEmail(client, props);
